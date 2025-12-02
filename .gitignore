@@ -1,3 +1,4 @@
+.idea
 .env
 .env.development
 data/prices.txt
