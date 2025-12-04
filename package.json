@@ -1,12 +1,14 @@
 {
-  "name": "carzusa-2",
-  "version": "1.0.0",
+  "name": "carzusa",
+  "version": "2.0.7",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "cross-env DEV_MODE=true node index.js",
-    "deploy": "node deploy-commands.js",
-    "deploy:dev": "cross-env DEV_MODE=true node deploy-commands.js"
+    "deploy": "node utils/deploy-commands.js",
+    "deploy:dev": "cross-env DEV_MODE=true node utils/deploy-commands.js",
+    "reset": "node utils/reset-commands.js",
+    "reset:dev": "cross-env DEV_MODE=true node utils/reset-commands.js"
   },
   "keywords": [],
   "author": "",
