@@ -14,12 +14,12 @@ if (!token || !clientId) {
 }
 
 const commands = [];
-const commandsPath = path.join(__dirname, 'commands');
+const commandsPath = path.join(__dirname, './commands');
 if (!fs.existsSync(commandsPath)) fs.mkdirSync(commandsPath);
 
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
-console.log(`Scanning ${commandFiles.length} files in 'commands/'...`);
+console.log(`Scanning ${commandFiles.length} files in './commands/'...`);
 
 for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
