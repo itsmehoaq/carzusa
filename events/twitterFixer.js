@@ -47,11 +47,16 @@ module.exports = {
                     .setColor('#FFCC00')
                     .setTitle('Repost detected')
                     .setDescription(`Count: **${newCount}**`)
-                    .addFields({ name: 'First Posted By', value: originalUser, inline: true });
+                    .addFields({ name: 'First posted by', value: originalUser, inline: true });
 
                 if (existingRecord.first_channel_id && existingRecord.first_message_id) {
                     const jumpUrl = `https://discord.com/channels/${guildId}/${existingRecord.first_channel_id}/${existingRecord.first_message_id}`;
                     embed.addFields({ name: 'Original Message', value: `[Jump to message](${jumpUrl})`, inline: true });
+                }
+
+                try {
+                    await message.suppressEmbeds(true);
+                } catch (e) {
                 }
 
                 await message.reply({
