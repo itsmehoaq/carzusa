@@ -58,10 +58,7 @@ module.exports = {
         .addChoices(...PLATFORM_CHOICES),
     )
     .addStringOption((option) =>
-      option
-        .setName("code")
-        .setDescription("Redeem code")
-        .setRequired(true),
+      option.setName("code").setDescription("Redeem code").setRequired(true),
     )
     .addBooleanOption((option) =>
       option

@@ -211,7 +211,8 @@ async function sendAnnouncement(interaction, p92, d92, p95, d95) {
 
   try {
     await channel.send({
-      content: "@everyone **ᴘɪɴ ᴘᴏɴ ᴘᴀɴ ᴘᴏɴ**\n**Update giá xăng trong nước, theo kỳ điều chỉnh được áp dụng từ 15h chiều hôm nay như sau:**",
+      content:
+        "@everyone **ᴘɪɴ ᴘᴏɴ ᴘᴀɴ ᴘᴏɴ**\n**Update giá xăng trong nước, theo kỳ điều chỉnh được áp dụng từ 15h chiều hôm nay như sau:**",
       embeds: [embed92, embed95],
     });
     return true;
