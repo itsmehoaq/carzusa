@@ -45,11 +45,16 @@ for (const file of eventFiles) {
   }
 }
 
+const gasScheduler = require("./utils/gasScheduler");
+
 client.once(Events.ClientReady, (c) => {
   console.log(`Logged in as ${c.user.tag}`);
   console.log(
     `Environment: ${process.env.DEV_MODE === "true" ? "DEVELOPMENT" : "PRODUCTION"}`,
   );
+  
+  // Initialize automated gas price scheduler
+  gasScheduler.initScheduler(c);
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {

@@ -1,0 +1,42 @@
+[
+  {
+    "id": 7156,
+    "created_at": "2026-01-28T00:00:03.000000Z",
+    "updated_at": "2026-01-28T00:00:03.000000Z",
+    "petrolimex_id": "2ed3d75ed91945b39bee9206b0f31da7",
+    "date": "2026-01-28 00:00:00",
+    "title": "Xăng E5 RON 92-II",
+    "zone1_price": 18280,
+    "zone2_price": 18640
+  },
+  {
+    "id": 7158,
+    "created_at": "2026-01-28T00:00:03.000000Z",
+    "updated_at": "2026-01-28T00:00:03.000000Z",
+    "petrolimex_id": "b75bc8919d6541dd81e1c60a76f4d78e",
+    "date": "2026-01-28 00:00:00",
+    "title": "Xăng RON 95-III",
+    "zone1_price": 18630,
+    "zone2_price": 19000
+  },
+  {
+    "id": 7159,
+    "created_at": "2026-01-28T00:00:03.000000Z",
+    "updated_at": "2026-01-28T00:00:03.000000Z",
+    "petrolimex_id": "5bc76fdd0b7143fcb14bc4e5402060bf",
+    "date": "2026-01-28 00:00:00",
+    "title": "Xăng RON 95-V",
+    "zone1_price": 19430,
+    "zone2_price": 19810
+  },
+  {
+    "id": 7157,
+    "created_at": "2026-01-28T00:00:03.000000Z",
+    "updated_at": "2026-01-28T00:00:03.000000Z",
+    "petrolimex_id": "85176bf8a6dd45d597c6980f7a674316",
+    "date": "2026-01-28 00:00:00",
+    "title": "Xăng E10 RON 95-III",
+    "zone1_price": 18520,
+    "zone2_price": 18890
+  }
+]

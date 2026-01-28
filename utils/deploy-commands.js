@@ -6,7 +6,6 @@ require("./envLoader")();
 
 const token = process.env.DISCORD_TOKEN;
 const clientId = process.env.CLIENT_ID;
-const guildId = process.env.GAS_NOTIFY_GUILD_ID;
 
 if (!token || !clientId) {
   console.error("Error: Missing DISCORD_TOKEN or CLIENT_ID in configuration.");
@@ -44,18 +43,9 @@ const rest = new REST({ version: "10" }).setToken(token);
       `Started refreshing ${commands.length} application (/) commands.`,
     );
     console.log(`Target Client ID: ${clientId}`);
+    console.log(`Deploying commands globally...`);
 
-    let route;
-    if (guildId) {
-      console.log(`Target Guild ID: ${guildId} (Instant Deployment)`);
-      route = Routes.applicationGuildCommands(clientId, guildId);
-    } else {
-      console.log(
-        `No Guild ID found. Deploying Globally (Updates take ~1 hour)`,
-      );
-      route = Routes.applicationCommands(clientId);
-    }
-
+    const route = Routes.applicationCommands(clientId);
     const data = await rest.put(route, { body: commands });
 
     console.log(
