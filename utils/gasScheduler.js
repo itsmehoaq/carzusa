@@ -122,6 +122,14 @@ async function checkAndAnnounceGasPrices() {
       JSON.stringify(currentData, null, 2),
       "utf-8"
     );
+
+    const sent = await sendAnnouncement(currentData, diffs, channelId);
+
+    if (sent) {
+      console.log("[Gas Scheduler] Automated announcement sent successfully!");
+    } else {
+      console.error("[Gas Scheduler] Failed to send announcement. Check logs.");
+    }
   } catch (error) {
     console.error("[Gas Scheduler] API Error:", error.message);
   }
