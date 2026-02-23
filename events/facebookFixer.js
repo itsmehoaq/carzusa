@@ -1,169 +1,176 @@
-const { Events, AttachmentBuilder, EmbedBuilder } = require("discord.js");
-const facebook = require("../utils/facebook");
+const { Events, EmbedBuilder, AttachmentBuilder } = require("discord.js");
+const { scrapePost, extractFacebookUrl, validateCookies } = require("../utils/facebook");
 
 const processingCache = new Set();
-const CACHE_TTL = 30000;
+
+const COLORS = {
+  FACEBOOK: 0x0866ff,
+  REEL: 0xfa7e1e,
+  ERROR: 0xed4245,
+};
+
+const FB_ICON =
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/600px-Facebook_Logo_%282019%29.png";
 
 module.exports = {
   name: Events.MessageCreate,
 
-  async execute(message) {
-    if (message.author.bot) return;
-    if (!message.guild) return;
+  execute: async (message) => {
+    if (message.author.bot || !message.guild) return;
 
-    const content = message.content;
-
-    const fbUrl = facebook.extractFacebookUrl(content);
+    const fbUrl = extractFacebookUrl(message.content);
     if (!fbUrl) return;
 
-    const cacheKey = `${message.id}-${fbUrl}`;
+    const cacheKey = `${message.channelId}-${fbUrl}`;
     if (processingCache.has(cacheKey)) return;
     processingCache.add(cacheKey);
-    setTimeout(() => processingCache.delete(cacheKey), CACHE_TTL);
+    setTimeout(() => processingCache.delete(cacheKey), 30000);
 
-    if (!facebook.validateCookies()) {
-      return;
-    }
+    if (!validateCookies()) return;
 
     try {
       await message.channel.sendTyping();
 
-      const result = await facebook.scrapePost(fbUrl);
+      const result = await scrapePost(fbUrl);
 
       if (result.error) {
         console.error(`[FacebookFixer] Error: ${result.error}`);
-        if (process.env.DEV_MODE === "true") {
-          const errorEmbed = new EmbedBuilder()
-            .setColor("#FF0000")
-            .setTitle("⚠️ Facebook Fixer Error")
-            .setDescription(`Could not fetch Facebook content: ${result.error}`)
-            .setTimestamp();
-          
-          await message.reply({
-            embeds: [errorEmbed],
-            allowedMentions: { repliedUser: false },
-          });
-        }
         return;
       }
 
-      if (result.files.length === 0 && !result.message) {
-        console.log("[FacebookFixer] No content found for:", fbUrl);
-        return;
-      }
-
-      const images = [];
-      const videos = [];
-      
-      result.files.forEach((file, index) => {
-        const filename = `fb_media_${index + 1}_${+ Date.now()}.${file.extension}`;
-        const attachment = new AttachmentBuilder(file.buffer, { name: filename });
-        
-        if (["mp4", "mov", "webm"].includes(file.extension.toLowerCase())) {
-          videos.push({ attachment, filename });
-        } else {
-          images.push({ attachment, filename });
-        }
-      });
+      if (result.files.length === 0 && !result.message) return;
 
       try {
         await message.suppressEmbeds(true);
-      } catch (e) {}
+      } catch {}
+
+      const images = [];
+      const videos = [];
+      for (const file of result.files) {
+        const ext = file.extension?.toLowerCase() || "";
+        if (["mp4", "mov", "webm"].includes(ext)) {
+          videos.push(file);
+        } else {
+          images.push(file);
+        }
+      }
+
+      const footerParts = [];
+      if (result.likes && result.likes !== "null") footerParts.push(`❤️ ${result.likes}`);
+      if (result.comments && result.comments !== "null") footerParts.push(`💬 ${result.comments}`);
+      if (result.shares && result.shares !== "null") footerParts.push(`🔁 ${result.shares}`);
+      if (result.skippedLargeFiles > 0) footerParts.push(`⚠️ ${result.skippedLargeFiles} file(s) too large`);
+      const footerText = footerParts.length > 0 ? footerParts.join(" • ") : null;
+
+      const embedColor = result.isReel ? COLORS.REEL : COLORS.FACEBOOK;
+
+      let authorDisplay = result.authorName || result.postInfo?.title || "Facebook";
+      if (result.groupName) {
+        authorDisplay = `${result.authorName || "Unknown"} › ${result.groupName}`;
+      }
+
+      let displayMessage = result.message || "";
+      if (displayMessage.length > 4000) {
+        displayMessage = displayMessage.substring(0, 3997) + "...";
+      }
+
+      const postUrl = result.postInfo?.url || fbUrl;
 
       if (videos.length > 0) {
-        let videoContent = "";
-        if (result.message) {
-          const truncatedMsg = result.message.length > 1800
-            ? result.message.substring(0, 1800) + `... [View more](${fbUrl})`
-            : result.message;
-          videoContent = truncatedMsg;
+        const videoAttachments = videos.map(
+          (v, i) => new AttachmentBuilder(v.buffer, { name: `video${i > 0 ? i + 1 : ""}${v.extension.startsWith(".") ? "" : "."}${v.extension}` })
+        );
+
+        const contentLines = [];
+        contentLines.push(`**${authorDisplay}**`);
+        if (displayMessage) contentLines.push(displayMessage);
+        if (footerText) contentLines.push(`\n${footerText}`);
+
+        let content = contentLines.join("\n");
+        if (content.length > 2000) {
+          content = content.substring(0, 1997) + "...";
         }
-        
-        const footerParts = [];
-        footerParts.push(`[Facebook](<${fbUrl}>)`);
-        if (result.skippedLargeFiles > 0) {
-          footerParts.push(`${result.skippedLargeFiles} file(s) skipped (>25MB)`);
-        }
-        
-        if (videoContent) {
-          videoContent += `\n\n-# ${footerParts.join(" • ")}`;
-        } else {
-          videoContent = `-# ${footerParts.join(" • ")}`;
-        }
-        
+
         await message.reply({
-          content: videoContent,
-          files: videos.map(v => v.attachment),
+          content,
+          files: videoAttachments,
           allowedMentions: { repliedUser: false },
         });
-        
+
         if (images.length > 0) {
-          const imageEmbed = new EmbedBuilder()
-            .setColor("#1877F2")
-            .setImage(`attachment://${images[0].filename}`);
-          
-          if (images.length > 1) {
-            imageEmbed.setFooter({ text: `+${images.length - 1} more image(s)` });
-          }
-          
-          await message.channel.send({
-            embeds: [imageEmbed],
-            files: [images[0].attachment],
-          });
+          const imageAttachments = images.map(
+            (img, i) => new AttachmentBuilder(img.buffer, { name: `image${i + 1}${img.extension.startsWith(".") ? "" : "."}${img.extension}` })
+          );
+          await message.channel.send({ files: imageAttachments });
         }
-      } else if (images.length > 0) {
-        const embed = new EmbedBuilder()
-          .setColor("#1877F2")
-          .setAuthor({
-            name: "Facebook link",
-            url: fbUrl,
-          })
-          .setImage(`attachment://${images[0].filename}`)
-          .setTimestamp();
+        return;
+      }
 
-        if (result.message) {
-          const truncatedMsg = result.message.length > 4096 
-            ? result.message.substring(0, 4093) + "..."
-            : result.message;
-          embed.setDescription(truncatedMsg);
+      if (images.length > 0) {
+        const firstImageName = `image1${images[0].extension.startsWith(".") ? "" : "."}${images[0].extension}`;
+        const firstImageAttachment = new AttachmentBuilder(images[0].buffer, { name: firstImageName });
+
+        const mainEmbed = new EmbedBuilder()
+          .setColor(embedColor)
+          .setAuthor({ name: authorDisplay, url: postUrl, iconURL: FB_ICON })
+          .setURL(postUrl)
+          .setImage(`attachment://${firstImageName}`);
+
+        if (displayMessage) {
+          mainEmbed.setDescription(displayMessage);
         }
 
-        const footerParts = [];
-        if (images.length > 1) {
-          footerParts.push(`+${images.length - 1} more image(s)`);
+        if (footerText) {
+          mainEmbed.setFooter({ text: footerText });
         }
-        if (result.skippedLargeFiles > 0) {
-          footerParts.push(`${result.skippedLargeFiles} file(s) skipped (>25MB)`);
+
+        if (result.postDate) {
+          mainEmbed.setTimestamp(result.postDate * 1000);
         }
-        if (footerParts.length > 0) {
-          embed.setFooter({ text: footerParts.join(" • ") });
+
+        const embeds = [mainEmbed];
+        const files = [firstImageAttachment];
+
+        for (let i = 1; i < Math.min(images.length, 4); i++) {
+          const imgName = `image${i + 1}${images[i].extension.startsWith(".") ? "" : "."}${images[i].extension}`;
+          const imgAttachment = new AttachmentBuilder(images[i].buffer, { name: imgName });
+          const galleryEmbed = new EmbedBuilder()
+            .setURL(postUrl)
+            .setImage(`attachment://${imgName}`);
+          embeds.push(galleryEmbed);
+          files.push(imgAttachment);
         }
 
         await message.reply({
-          embeds: [embed],
-          files: [images[0].attachment],
+          embeds,
+          files,
           allowedMentions: { repliedUser: false },
         });
-      } else if (result.message) {
-        const embed = new EmbedBuilder()
-          .setColor("#1877F2")
-          .setAuthor({
-            name: "Facebook link",
-            url: fbUrl,
-          })
-          .setDescription(result.message.length > 4096 
-            ? result.message.substring(0, 4093) + "..."
-            : result.message)
-          .setTimestamp();
+        return;
+      }
+
+      if (displayMessage) {
+        const textEmbed = new EmbedBuilder()
+          .setColor(embedColor)
+          .setAuthor({ name: authorDisplay, url: postUrl, iconURL: FB_ICON })
+          .setDescription(displayMessage)
+          .setURL(postUrl);
+
+        if (footerText) {
+          textEmbed.setFooter({ text: footerText });
+        }
+
+        if (result.postDate) {
+          textEmbed.setTimestamp(result.postDate * 1000);
+        }
 
         await message.reply({
-          embeds: [embed],
+          embeds: [textEmbed],
           allowedMentions: { repliedUser: false },
         });
       }
-
-    } catch (error) {
-      console.error("[FacebookFixer] Unexpected error:", error);
+    } catch (err) {
+      console.error("[FacebookFixer] Error:", err.message);
     }
   },
 };
