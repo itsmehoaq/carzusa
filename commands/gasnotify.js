@@ -44,15 +44,22 @@ module.exports = {
     ),
 
   async execute(interaction) {
-    // Owner Check
-    if (interaction.user.id !== process.env.OWNER) {
+    const subcommand = interaction.options.getSubcommand();
+    const requiredRoleId = "1058299698374524980";
+
+    if (subcommand === "check") {
+      if (!interaction.member?.roles?.cache?.has(requiredRoleId)) {
+        return interaction.reply({
+          content: "You are not authorized.",
+          ephemeral: true,
+        });
+      }
+    } else if (interaction.user.id !== process.env.OWNER) {
       return interaction.reply({
         content: "You are not authorized.",
         ephemeral: true,
       });
     }
-
-    const subcommand = interaction.options.getSubcommand();
     const dataDir = path.join(__dirname, "../data");
     if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
     const pricesDataPath = path.join(dataDir, "prices.json");
@@ -61,7 +68,7 @@ module.exports = {
 
     if (subcommand === "check") {
       await interaction.deferReply({ ephemeral: true });
-      
+
       const today = moment().format("YYYY-MM-DD");
       const API_URL = `https://giaxanghomnay.com/api/pvdate/${today}`;
 
@@ -74,12 +81,12 @@ module.exports = {
         }
 
         const petrolimexData = data[0];
-        
+
         const currentData = [
-          petrolimexData[2], 
-          petrolimexData[1], 
-          petrolimexData[0], 
-          petrolimexData[3], 
+          petrolimexData[2],
+          petrolimexData[1],
+          petrolimexData[0],
+          petrolimexData[3],
         ];
         let prevData = null;
         if (fs.existsSync(pricesDataPath)) {
@@ -87,13 +94,17 @@ module.exports = {
             const fileContent = fs.readFileSync(pricesDataPath, "utf-8");
             prevData = JSON.parse(fileContent);
           } catch (e) {
-            console.log("Error reading previous data, will overwrite:", e.message);
+            console.log(
+              "Error reading previous data, will overwrite:",
+              e.message,
+            );
           }
         }
 
         if (!isDev && prevData && fs.existsSync(pricesDataPath)) {
-          const isIdentical = currentData.every((item, i) => 
-            prevData[i] && item.zone1_price === prevData[i].zone1_price
+          const isIdentical = currentData.every(
+            (item, i) =>
+              prevData[i] && item.zone1_price === prevData[i].zone1_price,
           );
           if (isIdentical) {
             return interaction.editReply("Data identical to last update.");
@@ -108,16 +119,12 @@ module.exports = {
         });
 
         fs.writeFileSync(
-          pricesDataPath, 
-          JSON.stringify(currentData, null, 2), 
-          "utf-8"
+          pricesDataPath,
+          JSON.stringify(currentData, null, 2),
+          "utf-8",
         );
 
-        const sent = await sendAnnouncement(
-          interaction,
-          currentData,
-          diffs,
-        );
+        const sent = await sendAnnouncement(interaction, currentData, diffs);
 
         if (sent) await interaction.editReply("Automated announcement sent!");
         else
@@ -130,7 +137,7 @@ module.exports = {
       }
     } else if (subcommand === "manual") {
       await interaction.deferReply({ ephemeral: true });
-      
+
       const newPrices = [
         interaction.options.getInteger("price_e5ron92"),
         interaction.options.getInteger("price_ron95iii"),
@@ -165,9 +172,13 @@ module.exports = {
       const today = moment().format("YYYY-MM-DD");
       const currentData = newPrices.map((price, i) => ({
         id: prevData && prevData[i] ? prevData[i].id : null,
-        created_at: prevData && prevData[i] ? prevData[i].created_at : new Date().toISOString(),
+        created_at:
+          prevData && prevData[i]
+            ? prevData[i].created_at
+            : new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        petrolimex_id: prevData && prevData[i] ? prevData[i].petrolimex_id : null,
+        petrolimex_id:
+          prevData && prevData[i] ? prevData[i].petrolimex_id : null,
         date: `${today} 00:00:00`,
         title: gasTitles[i],
         zone1_price: price,
@@ -175,9 +186,9 @@ module.exports = {
       }));
 
       fs.writeFileSync(
-        pricesDataPath, 
-        JSON.stringify(currentData, null, 2), 
-        "utf-8"
+        pricesDataPath,
+        JSON.stringify(currentData, null, 2),
+        "utf-8",
       );
 
       const sent = await sendAnnouncement(interaction, currentData, diffs);
@@ -211,31 +222,35 @@ async function sendAnnouncement(interaction, gasData, diffs) {
     return false;
   }
 
-  const upEmoji = isDev ? "<:up_small:1465930784685690922>" : "<:up_small:1465964979114082314>";
-  const downEmoji = isDev ? "<:down_small:1465930783108628552>" : "<:down_small:1465964976823992370>";
-  
+  const upEmoji = isDev
+    ? "<:up_small:1465930784685690922>"
+    : "<:up_small:1465964979114082314>";
+  const downEmoji = isDev
+    ? "<:down_small:1465930783108628552>"
+    : "<:down_small:1465964976823992370>";
+
   const embeds = gasData.map((item, index) => {
     const price = item.zone1_price;
     const diff = diffs[index];
     const displayTitle = item.title.replace(/^Xăng\s+/, "");
-    
+
     const emoji = diff < 0 ? downEmoji : diff > 0 ? upEmoji : "•";
-    
+
     const embedColor = diff < 0 ? "#7be863" : diff > 0 ? "#e85353" : "#808080";
-    
+
     return new EmbedBuilder()
       .setTitle(displayTitle)
       .addFields(
         {
           name: "Giá mới",
           value: `${price.toLocaleString()} ₫/lít`,
-          inline: true
+          inline: true,
         },
         {
           name: "Chênh lệch",
           value: `${emoji} ${Math.abs(diff).toLocaleString()} ₫/lít`,
-          inline: true
-        }
+          inline: true,
+        },
       )
       .setColor(embedColor);
   });
@@ -243,7 +258,7 @@ async function sendAnnouncement(interaction, gasData, diffs) {
   try {
     await channel.send({
       content:
-        "@everyone **ᴘɪɴ ᴘᴏɴ ᴘᴀɴ ᴘᴏɴ**\n**Update giá xăng trong nước, theo kỳ điều chỉnh được áp dụng từ 15h chiều hôm nay như sau:**",
+        "@everyone **ᴘɪɴ ᴘᴏɴ ᴘᴀɴ ᴘᴏɴ**\n**Update giá xăng trong nước, theo kỳ điều chỉnh được áp dụng từ ~~15h chiều hôm nay~~ thời gian ping như sau:**",
       embeds: embeds,
     });
     return true;

@@ -82,7 +82,6 @@ module.exports = {
           .eq("id", existingRecord.id)
           .then(() => {});
 
-        // Skip sending the warning embed if it's the owner
         if (userId === process.env.OWNER) {
           await sendFixMessage();
           return;
