@@ -1,5 +1,22 @@
 const axios = require("axios");
 
+const PPLX_BASE_URL = process.env.PPLX_BASE_URL || "http://localhost:20128/v1";
+const PPLX_MODEL = process.env.PPLX_MODEL || "pplx-web/pplx-auto";
+const MAX_REPLY_CHARS = 400;
+
+const SYSTEM_PROMPT = `You answer search-style queries with concise, useful results.
+
+Rules:
+- HARD LIMIT: ≤255 characters total (truncate if needed)
+- Answer directly; no greetings or filler
+- Use Discord markdown: **bold**, *italic*, \`code\`, newlines
+- Emojis allowed when useful
+- Prioritize key facts (dates, names, numbers)
+- Prefer brevity over completeness
+- If unclear, answer the most common interpretation
+- For time-sensitive queries, use the latest info
+- If exceeding limit, cut off mid-sentence`;
+
 async function getAIReply(query) {
   const apiKey = process.env.PPLX_KEY;
 
@@ -13,41 +30,21 @@ async function getAIReply(query) {
 
   try {
     const response = await axios.post(
-      "https://api.perplexity.ai/chat/completions",
+      `${PPLX_BASE_URL}/chat/completions`,
       {
-        model: "sonar",
+        model: PPLX_MODEL,
         messages: [
           {
             role: "system",
-            content:
-                "You are a quick search engine. Search the keyword and return a comprehensive answer.\n\nRules:\n- Max 255 characters (including spaces, markdown, emojis)\n- Use Discord-compatible markdown: **bold**, *italic*, `code`, ...\n- Use any emojis available\n- Answer directly — no greetings or filler\n- Prioritize key facts; abbreviate if needed\n- If query is unclear, answer the most common interpretation",
+            content: SYSTEM_PROMPT,
           },
           {
             role: "user",
             content: query,
           },
         ],
-        temperature: 0.2,
-        top_k: 0,
-        top_p: 0.9,
-        response_format: {
-          type: "text",
-        },
-        tool_choice: "none",
-        parallel_tool_calls: false,
-        web_search_options: {
-          search_context_size: "low",
-          search_type: "fast",
-          image_results_enhanced_relevance: false,
-        },
-        search_mode: "web",
-        return_images: false,
-        return_related_questions: false,
+        max_tokens: 80,
         stream: false,
-        presence_penalty: 0,
-        frequency_penalty: 0,
-        disable_search: false,
-        enable_search_classifier: false,
       },
       {
         headers: {
@@ -59,7 +56,7 @@ async function getAIReply(query) {
     );
 
     const data = response.data;
-    const aiContent = data.choices?.[0]?.message?.content || "";
+    const aiContent = truncateReply(data.choices?.[0]?.message?.content || "");
     const searchResults = data.search_results || [];
 
     const citations = parseCitations(aiContent, searchResults);
@@ -70,13 +67,19 @@ async function getAIReply(query) {
       error: null,
     };
   } catch (error) {
-    console.error("Perplexity API error:", error.message);
+    console.error("Perplexity API error:", error.response?.data || error.message);
     return {
       content: null,
       citations: [],
       error: error.message || "Failed to get AI response",
     };
   }
+}
+
+function truncateReply(content) {
+  return content.length > MAX_REPLY_CHARS
+    ? content.slice(0, MAX_REPLY_CHARS)
+    : content;
 }
 
 function parseCitations(content, searchResults) {
