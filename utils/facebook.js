@@ -327,7 +327,7 @@ function getGroupNameFromJson(jsonBlocks) {
 }
 
 function extractAuthorAndText(rootNode) {
-  const result = { authorName: null, text: '', imageLinks: [], videoLinks: [] };
+  const result = { authorName: null, text: '', imageLinks: [], videoLinks: [], postUrl: null };
 
   try {
     const story = rootNode?.content?.story;
@@ -339,6 +339,13 @@ function extractAuthorAndText(rootNode) {
 
     if (story.message && story.message.text) {
       result.text = story.message.text;
+    }
+
+    result.postUrl = story.wwwURL || null;
+
+    const linkCard = extractLinkCard(story);
+    if (linkCard.url) {
+      result.text += linkCard.title ? `\n🔗 ${linkCard.title}: ${linkCard.url}` : `\n🔗 ${linkCard.url}`;
     }
 
     const extractMediaFromStory = (storyNode) => {
@@ -402,6 +409,11 @@ function extractAuthorAndText(rootNode) {
         }
       }
 
+      if (imgs.length === 0) {
+        const linkCardImage = extractLinkCardImage(storyNode);
+        if (linkCardImage) imgs.push(linkCardImage);
+      }
+
       return { imgs, vids };
     };
 
@@ -418,6 +430,15 @@ function extractAuthorAndText(rootNode) {
         result.text += `\n╰┈➤ ${sharedAuthor}\n${sharedText}`;
       }
 
+      if (!result.postUrl && attachedStory.wwwURL) {
+        result.postUrl = attachedStory.wwwURL;
+      }
+
+      const sharedLinkCard = extractLinkCard(attachedStory);
+      if (sharedLinkCard.url) {
+        result.text += sharedLinkCard.title ? `\n🔗 ${sharedLinkCard.title}: ${sharedLinkCard.url}` : `\n🔗 ${sharedLinkCard.url}`;
+      }
+
       const sharedMedia = extractMediaFromStory(attachedStory);
       for (const img of sharedMedia.imgs) {
         if (!result.imageLinks.includes(img)) result.imageLinks.push(img);
@@ -431,6 +452,33 @@ function extractAuthorAndText(rootNode) {
   }
 
   return result;
+}
+
+function extractLinkCard(postJson) {
+  const attachments = findAllByKey(postJson, 'attachment');
+  for (const attachment of attachments) {
+    const target = attachment?.target;
+    if (!target || typeof target !== 'object' || !target.external_url) continue;
+    const titleObj = attachment.title_with_entities;
+    return {
+      title: titleObj && typeof titleObj === 'object' ? titleObj.text || '' : '',
+      url: target.external_url,
+    };
+  }
+  return { title: '', url: '' };
+}
+
+function extractLinkCardImage(postJson) {
+  const attachments = findAllByKey(postJson, 'attachment');
+  for (const attachment of attachments) {
+    const media = attachment?.media;
+    if (!media || typeof media !== 'object') continue;
+    for (const imgKey of ['large_share_image', 'flexible_height_share_image']) {
+      const img = media[imgKey];
+      if (img && typeof img === 'object' && img.uri) return img.uri;
+    }
+  }
+  return '';
 }
 
 function extractPostDate(rootNode) {
@@ -1210,6 +1258,35 @@ const scrapePost = async (url) => {
     isReel: false,
   };
 
+  const addMediaDownloads = async (mediaUrls) => {
+    const uniqueUrls = [...new Set(mediaUrls.filter(Boolean))];
+    if (uniqueUrls.length === 0) return;
+
+    const downloads = await Promise.all(uniqueUrls.map((mediaUrl) => downloadMedia(mediaUrl)));
+    for (const download of downloads) {
+      if (!download) continue;
+      if (download.tooLarge) {
+        result.skippedLargeFiles++;
+        continue;
+      }
+      if (download.buffer) {
+        result.files.push({
+          buffer: download.buffer,
+          extension: download.extension,
+        });
+      }
+    }
+  };
+
+  const setMessage = (text, sourceUrl) => {
+    if (!text) return;
+    let message = escapeMarkdown(text.trim());
+    if (message.length > 727) {
+      message = message.substring(0, 727) + "... [View more](" + sourceUrl + ")";
+    }
+    result.message = message;
+  };
+
   if (!validateCookies()) {
     result.error = "Facebook cookies not configured";
     return result;
@@ -1217,7 +1294,7 @@ const scrapePost = async (url) => {
 
   try {
     session = createSession();
-    
+
     const directUrl = await getDirectUrl(url);
     if (!directUrl) {
       result.error = "Could not resolve Facebook URL (cookies may be expired)";
@@ -1227,25 +1304,24 @@ const scrapePost = async (url) => {
     let normalizedUrl = directUrl;
     const videosMatch = directUrl.match(/\/([^/]+)\/videos\/(\d+)/);
     if (videosMatch) {
-      normalizedUrl = directUrl.replace(/\/[^/]+\/videos\/(\d+)/, '/reel/$1').replace(/\/[^/]+\/watch\/(\d+)/, '/videos/$1');
-      console.log('[Facebook] Converted /videos/ URL to /reel/ format');
+      normalizedUrl = directUrl.replace(/\/[^/]+\/videos\/(\d+)/, "/reel/$1").replace(/\/[^/]+\/watch\/(\d+)/, "/videos/$1");
+      console.log("[Facebook] Converted /videos/ URL to /reel/ format");
     }
 
     const isReelUrl = /\/reel\/\d+/.test(normalizedUrl);
     const isWatchUrl = /\/watch/.test(normalizedUrl);
-
-    const cacheBuster = `${normalizedUrl.includes('?') ? '&' : '?'}_cb=${Date.now()}`;
+    const cacheBuster = (normalizedUrl.includes("?") ? "&" : "?") + "_cb=" + Date.now();
     const response = await session.get(normalizedUrl + cacheBuster, {
       headers: {
         ...getBaseHeaders(),
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-      }
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
     });
     const html = response.data;
-
     const mobilePostInfo = extractMobilePostInfo(html);
+
     result.postInfo = {
       postType: mobilePostInfo.postType,
       isVideo: mobilePostInfo.isVideo,
@@ -1254,23 +1330,17 @@ const scrapePost = async (url) => {
       groupInfo: mobilePostInfo.groupInfo,
       groupName: mobilePostInfo.groupName,
       title: mobilePostInfo.title,
-      url: mobilePostInfo.url,
+      url: mobilePostInfo.url || normalizedUrl,
     };
-
-    if (mobilePostInfo.isGroupPost) {
-      console.log(`[Facebook] Detected group post: ${mobilePostInfo.groupName || 'Unknown group'}`);
-    }
-    if (mobilePostInfo.isVideo) {
-      console.log('[Facebook] Detected video post from og:type');
-    }
 
     let structuredParsingSucceeded = false;
 
     try {
       const jsonBlocks = getJsonBlocks(html, true);
+      const unsortedJsonBlocks = getJsonBlocks(html, false);
 
       if (isReelUrl) {
-        const reelData = parseReelContent(jsonBlocks);
+        const reelData = parseReelContent(unsortedJsonBlocks.length > 0 ? unsortedJsonBlocks : jsonBlocks);
 
         result.authorName = reelData.authorName;
         result.postDate = reelData.postDate;
@@ -1278,37 +1348,10 @@ const scrapePost = async (url) => {
         result.comments = reelData.comments;
         result.shares = reelData.shares;
         result.isReel = true;
+        result.postInfo.url = reelData.postUrl || result.postInfo.url;
 
-        if (reelData.text) {
-          let message = escapeMarkdown(reelData.text);
-          if (message.length > 727) {
-            message = message.substring(0, 727) + `... [View more](${url})`;
-          }
-          result.message = message;
-        }
-
-        const mediaUrls = [];
-        if (reelData.videoLink) mediaUrls.push(reelData.videoLink);
-
-        if (mediaUrls.length > 0) {
-          const downloadPromises = mediaUrls.map((mediaUrl) => downloadMedia(mediaUrl));
-          const downloads = await Promise.all(downloadPromises);
-
-          for (const download of downloads) {
-            if (!download) continue;
-            if (download.tooLarge) {
-              result.skippedLargeFiles++;
-              continue;
-            }
-            if (download.buffer) {
-              result.files.push({
-                buffer: download.buffer,
-                extension: download.extension,
-              });
-            }
-          }
-        }
-
+        setMessage(reelData.text, result.postInfo.url || url);
+        await addMediaDownloads(reelData.videoLink ? [reelData.videoLink] : []);
         structuredParsingSucceeded = true;
       } else if (isWatchUrl) {
         const watchData = parseWatchContent(jsonBlocks);
@@ -1320,44 +1363,16 @@ const scrapePost = async (url) => {
         result.shares = watchData.shares;
         result.isReel = true;
 
-        if (watchData.text) {
-          let message = escapeMarkdown(watchData.text);
-          if (message.length > 727) {
-            message = message.substring(0, 727) + `... [View more](${url})`;
-          }
-          result.message = message;
-        }
-
-        const mediaUrls = [];
-        if (watchData.videoLink) mediaUrls.push(watchData.videoLink);
-
-        if (mediaUrls.length > 0) {
-          const downloadPromises = mediaUrls.map((mediaUrl) => downloadMedia(mediaUrl));
-          const downloads = await Promise.all(downloadPromises);
-
-          for (const download of downloads) {
-            if (!download) continue;
-            if (download.tooLarge) {
-              result.skippedLargeFiles++;
-              continue;
-            }
-            if (download.buffer) {
-              result.files.push({
-                buffer: download.buffer,
-                extension: download.extension,
-              });
-            }
-          }
-        }
-
+        setMessage(watchData.text, result.postInfo.url || url);
+        await addMediaDownloads(watchData.videoLink ? [watchData.videoLink] : []);
         structuredParsingSucceeded = true;
       } else {
         const postJson = getPostJson(jsonBlocks);
         const rootNode = getRootNode(postJson);
-        const counts = getInteractionCounts(postJson);
+        const counts = getInteractionCounts(rootNode);
         const authorAndText = extractAuthorAndText(rootNode);
         const postDate = extractPostDate(rootNode);
-        const groupName = getGroupNameFromJson(jsonBlocks);
+        const groupName = getGroupNameFromJson(jsonBlocks) || mobilePostInfo.groupName;
 
         result.authorName = authorAndText.authorName;
         result.postDate = postDate;
@@ -1365,48 +1380,15 @@ const scrapePost = async (url) => {
         result.comments = counts.comments;
         result.shares = counts.shares;
         result.groupName = groupName;
-        result.isReel = false;
+        result.isReel = authorAndText.videoLinks.length > 0 && authorAndText.imageLinks.length === 0;
+        result.postInfo.url = authorAndText.postUrl || result.postInfo.url || normalizedUrl;
 
-        if (authorAndText.text) {
-          let message = escapeMarkdown(authorAndText.text);
-          if (message.length > 727) {
-            message = message.substring(0, 727) + `... [View more](${url})`;
-          }
-          result.message = message;
-        }
-
-        const mediaUrls = [];
-        for (const vid of authorAndText.videoLinks) {
-          if (!mediaUrls.includes(vid)) mediaUrls.push(vid);
-        }
-        for (const img of authorAndText.imageLinks) {
-          if (!mediaUrls.includes(img)) mediaUrls.push(img);
-        }
-
-        if (mediaUrls.length > 0) {
-          const downloadPromises = mediaUrls.map((mediaUrl) => downloadMedia(mediaUrl));
-          const downloads = await Promise.all(downloadPromises);
-
-          for (const download of downloads) {
-            if (!download) continue;
-            if (download.tooLarge) {
-              result.skippedLargeFiles++;
-              continue;
-            }
-            if (download.buffer) {
-              result.files.push({
-                buffer: download.buffer,
-                extension: download.extension,
-              });
-            }
-          }
-        }
-
+        setMessage(authorAndText.text, result.postInfo.url || url);
+        await addMediaDownloads([...authorAndText.videoLinks, ...authorAndText.imageLinks]);
         structuredParsingSucceeded = true;
       }
     } catch (structuredError) {
-      console.log('[Facebook] Structured parsing failed, falling back to regex:', structuredError.message);
-      structuredParsingSucceeded = false;
+      console.log("[Facebook] Structured parsing failed, falling back to regex:", structuredError.message);
     }
 
     if (!structuredParsingSucceeded) {
@@ -1415,56 +1397,26 @@ const scrapePost = async (url) => {
       result.likes = null;
       result.comments = null;
       result.shares = null;
-      result.groupName = null;
+      result.groupName = mobilePostInfo.groupName || null;
       result.isReel = false;
 
       const msgMatch = html.match(/"message":{"text":"(([^\\"]|\\.)*)"/);
       if (msgMatch && msgMatch[1] && msgMatch[1] !== "Explore more in Video") {
-        let message = parseEscapedString(msgMatch[1]);
-        message = escapeMarkdown(message);
-
-        if (message.length > 727) {
-          message = message.substring(0, 727) + `... [View more](${url})`;
-        }
-        result.message = message;
+        setMessage(parseEscapedString(msgMatch[1]), result.postInfo?.url || url);
       }
-      
+
       if (!result.message && mobilePostInfo.description) {
-        console.log('[Facebook] Using og:description as message fallback');
-        let message = escapeMarkdown(mobilePostInfo.description);
-        if (message.length > 727) {
-          message = message.substring(0, 727) + `... [View more](${url})`;
-        }
-        result.message = message;
+        console.log("[Facebook] Using og:description as message fallback");
+        setMessage(mobilePostInfo.description, result.postInfo?.url || url);
       }
 
       const attachmentUrls = await parseAttachments(html);
-      
-      if (attachmentUrls.length === 0 && mobilePostInfo.thumbnailUrl) {
-        console.log('[Facebook] No media from parsing, using og:image thumbnail as fallback');
-        if (mobilePostInfo.thumbnailUrl.includes('fbcdn.net')) {
-          attachmentUrls.push(mobilePostInfo.thumbnailUrl);
-        }
+      if (attachmentUrls.length === 0 && mobilePostInfo.thumbnailUrl?.includes("fbcdn.net")) {
+        console.log("[Facebook] No media from parsing, using og:image thumbnail as fallback");
+        attachmentUrls.push(mobilePostInfo.thumbnailUrl);
       }
 
-      const downloadPromises = attachmentUrls.map((mediaUrl) =>
-        downloadMedia(mediaUrl)
-      );
-      const downloads = await Promise.all(downloadPromises);
-
-      for (const download of downloads) {
-        if (!download) continue;
-        if (download.tooLarge) {
-          result.skippedLargeFiles++;
-          continue;
-        }
-        if (download.buffer) {
-          result.files.push({
-            buffer: download.buffer,
-            extension: download.extension,
-          });
-        }
-      }
+      await addMediaDownloads(attachmentUrls);
     }
 
     return result;
