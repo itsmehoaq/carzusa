@@ -5,12 +5,22 @@ const processingCache = new Set();
 
 const COLORS = {
   FACEBOOK: 0x0866ff,
-  REEL: 0xfa7e1e,
+  REEL: 0xff8a00,
   ERROR: 0xed4245,
 };
 
 const FB_ICON =
   "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/600px-Facebook_Logo_%282019%29.png";
+
+const trimText = (text, limit) => {
+  if (!text || text.length <= limit) return text || "";
+  return `${text.slice(0, limit - 1).trimEnd()}…`;
+};
+
+const getFileName = (prefix, index, extension) => {
+  const cleanExtension = extension?.startsWith(".") ? extension.slice(1) : extension || "jpg";
+  return `${prefix}${index > 1 ? index : ""}.${cleanExtension}`;
+};
 
 module.exports = {
   name: Events.MessageCreate,
@@ -69,27 +79,18 @@ module.exports = {
         authorDisplay = `${result.authorName || "Unknown"} › ${result.groupName}`;
       }
 
-      let displayMessage = result.message || "";
-      if (displayMessage.length > 4000) {
-        displayMessage = displayMessage.substring(0, 3997) + "...";
-      }
-
+      const displayMessage = trimText(result.message, 4000);
       const postUrl = result.postInfo?.url || fbUrl;
+      const label = result.isReel ? "Facebook Reel" : "Facebook Post";
 
       if (videos.length > 0) {
-        const videoAttachments = videos.map(
-          (v, i) => new AttachmentBuilder(v.buffer, { name: `video${i > 0 ? i + 1 : ""}${v.extension.startsWith(".") ? "" : "."}${v.extension}` })
-        );
+        const videoAttachments = videos.map((v, i) => new AttachmentBuilder(v.buffer, { name: getFileName("video", i + 1, v.extension) }));
 
-        const contentLines = [];
-        contentLines.push(`**${authorDisplay}**`);
+        const contentLines = [`**${label} · ${authorDisplay}**`];
         if (displayMessage) contentLines.push(displayMessage);
         if (footerText) contentLines.push(`\n${footerText}`);
 
-        let content = contentLines.join("\n");
-        if (content.length > 2000) {
-          content = content.substring(0, 1997) + "...";
-        }
+        const content = trimText(contentLines.join("\n"), 2000);
 
         await message.reply({
           content,
@@ -98,21 +99,19 @@ module.exports = {
         });
 
         if (images.length > 0) {
-          const imageAttachments = images.map(
-            (img, i) => new AttachmentBuilder(img.buffer, { name: `image${i + 1}${img.extension.startsWith(".") ? "" : "."}${img.extension}` })
-          );
+          const imageAttachments = images.map((img, i) => new AttachmentBuilder(img.buffer, { name: getFileName("image", i + 1, img.extension) }));
           await message.channel.send({ files: imageAttachments });
         }
         return;
       }
 
       if (images.length > 0) {
-        const firstImageName = `image1${images[0].extension.startsWith(".") ? "" : "."}${images[0].extension}`;
+        const firstImageName = getFileName("image", 1, images[0].extension);
         const firstImageAttachment = new AttachmentBuilder(images[0].buffer, { name: firstImageName });
 
         const mainEmbed = new EmbedBuilder()
           .setColor(embedColor)
-          .setAuthor({ name: authorDisplay, url: postUrl, iconURL: FB_ICON })
+          .setAuthor({ name: `${label} · ${authorDisplay}`, url: postUrl, iconURL: FB_ICON })
           .setURL(postUrl)
           .setImage(`attachment://${firstImageName}`);
 
@@ -132,7 +131,7 @@ module.exports = {
         const files = [firstImageAttachment];
 
         for (let i = 1; i < Math.min(images.length, 4); i++) {
-          const imgName = `image${i + 1}${images[i].extension.startsWith(".") ? "" : "."}${images[i].extension}`;
+          const imgName = getFileName("image", i + 1, images[i].extension);
           const imgAttachment = new AttachmentBuilder(images[i].buffer, { name: imgName });
           const galleryEmbed = new EmbedBuilder()
             .setURL(postUrl)
@@ -152,7 +151,7 @@ module.exports = {
       if (displayMessage) {
         const textEmbed = new EmbedBuilder()
           .setColor(embedColor)
-          .setAuthor({ name: authorDisplay, url: postUrl, iconURL: FB_ICON })
+          .setAuthor({ name: `${label} · ${authorDisplay}`, url: postUrl, iconURL: FB_ICON })
           .setDescription(displayMessage)
           .setURL(postUrl);
 
