@@ -1,4 +1,9 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  ApplicationIntegrationType,
+  InteractionContextType,
+} = require("discord.js");
 const axios = require("axios");
 const { getAIReply, formatContentWithCitations } = require("../utils/perplexity");
 
@@ -6,6 +11,17 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName("google")
     .setDescription("Search Google")
+    // Allow installing on a user account (works in any server/DM, even where
+    // the bot isn't a member) in addition to the default guild install.
+    .setIntegrationTypes(
+      ApplicationIntegrationType.GuildInstall,
+      ApplicationIntegrationType.UserInstall,
+    )
+    .setContexts(
+      InteractionContextType.Guild,
+      InteractionContextType.BotDM,
+      InteractionContextType.PrivateChannel,
+    )
     .addStringOption((option) =>
       option
         .setName("query")

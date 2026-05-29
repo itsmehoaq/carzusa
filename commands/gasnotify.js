@@ -1,8 +1,12 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const axios = require("axios");
+const { SlashCommandBuilder } = require("discord.js");
 const path = require("path");
 const fs = require("fs");
-const moment = require("moment-timezone");
+const {
+  fetchTrackedGasPrices,
+  withDiffs,
+  pricesUnchanged,
+  buildGasEmbeds,
+} = require("../utils/gasApi");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -12,6 +16,13 @@ module.exports = {
       subcommand
         .setName("check")
         .setDescription("Check API for gas price updates (Owner Only)"),
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("test")
+        .setDescription(
+          "Preview the announcement embed (no ping, only you see it)",
+        ),
     )
     .addSubcommand((subcommand) =>
       subcommand
@@ -31,14 +42,14 @@ module.exports = {
         )
         .addIntegerOption((o) =>
           o
-            .setName("price_e5ron92")
-            .setDescription("Price E5RON92-II")
+            .setName("price_e10ron95v")
+            .setDescription("Price E10RON95-V")
             .setRequired(true),
         )
         .addIntegerOption((o) =>
           o
-            .setName("price_e10ron95")
-            .setDescription("Price E10RON95-III")
+            .setName("price_e5ron92")
+            .setDescription("Price E5RON92-II")
             .setRequired(true),
         ),
     ),
@@ -47,7 +58,7 @@ module.exports = {
     const subcommand = interaction.options.getSubcommand();
     const requiredRoleId = "1058299698374524980";
 
-    if (subcommand === "check") {
+    if (subcommand === "check" || subcommand === "test") {
       if (!interaction.member?.roles?.cache?.has(requiredRoleId)) {
         return interaction.reply({
           content: "You are not authorized.",
@@ -69,54 +80,20 @@ module.exports = {
     if (subcommand === "check") {
       await interaction.deferReply({ ephemeral: true });
 
-      const today = moment().format("YYYY-MM-DD");
-      const API_URL = `https://giaxanghomnay.com/api/pvdate/${today}`;
-
       try {
-        const response = await axios.get(API_URL);
-        const data = response.data;
+        const currentData = await fetchTrackedGasPrices();
 
-        if (!data || !data[0] || data[0].length < 4) {
-          return interaction.editReply("No data available from API for today.");
+        if (!currentData) {
+          return interaction.editReply("No data available from API.");
         }
 
-        const petrolimexData = data[0];
+        const prevData = readPrevData(pricesDataPath);
 
-        const currentData = [
-          petrolimexData[2],
-          petrolimexData[1],
-          petrolimexData[0],
-          petrolimexData[3],
-        ];
-        let prevData = null;
-        if (fs.existsSync(pricesDataPath)) {
-          try {
-            const fileContent = fs.readFileSync(pricesDataPath, "utf-8");
-            prevData = JSON.parse(fileContent);
-          } catch (e) {
-            console.log(
-              "Error reading previous data, will overwrite:",
-              e.message,
-            );
-          }
+        if (!isDev && pricesUnchanged(currentData, prevData)) {
+          return interaction.editReply("Data identical to last update.");
         }
 
-        if (!isDev && prevData && fs.existsSync(pricesDataPath)) {
-          const isIdentical = currentData.every(
-            (item, i) =>
-              prevData[i] && item.zone1_price === prevData[i].zone1_price,
-          );
-          if (isIdentical) {
-            return interaction.editReply("Data identical to last update.");
-          }
-        }
-
-        const diffs = currentData.map((item, i) => {
-          if (prevData && prevData[i]) {
-            return item.zone1_price - prevData[i].zone1_price;
-          }
-          return 0;
-        });
+        const items = withDiffs(currentData, prevData);
 
         fs.writeFileSync(
           pricesDataPath,
@@ -124,7 +101,7 @@ module.exports = {
           "utf-8",
         );
 
-        const sent = await sendAnnouncement(interaction, currentData, diffs);
+        const sent = await sendAnnouncement(interaction, items, isDev);
 
         if (sent) await interaction.editReply("Automated announcement sent!");
         else
@@ -135,55 +112,62 @@ module.exports = {
         console.error("API Error:", error);
         await interaction.editReply("Error fetching prices from API.");
       }
+    } else if (subcommand === "test") {
+      await interaction.deferReply({ ephemeral: true });
+
+      try {
+        const currentData = await fetchTrackedGasPrices();
+
+        if (!currentData) {
+          return interaction.editReply("No data available from API.");
+        }
+
+        const prevData = readPrevData(pricesDataPath);
+        const items = withDiffs(currentData, prevData);
+        const embeds = buildGasEmbeds(items, isDev);
+
+        // Preview only: no @everyone ping, no file write, ephemeral so only
+        // the invoker sees it.
+        await interaction.editReply({
+          content:
+            "**Preview** — this is what the announcement would look like (no one was pinged):",
+          embeds: embeds,
+        });
+      } catch (error) {
+        console.error("API Error:", error);
+        await interaction.editReply("Error fetching prices from API.");
+      }
     } else if (subcommand === "manual") {
       await interaction.deferReply({ ephemeral: true });
 
-      const newPrices = [
-        interaction.options.getInteger("price_e5ron92"),
-        interaction.options.getInteger("price_ron95iii"),
-        interaction.options.getInteger("price_ron95v"),
-        interaction.options.getInteger("price_e10ron95"),
-      ];
-
       const gasTitles = [
-        "Xăng E5 RON 92-II",
-        "Xăng RON 95-III",
         "Xăng RON 95-V",
-        "Xăng E10 RON 95-III",
+        "Xăng RON 95-III",
+        "Xăng E10 RON 95-V",
+        "Xăng E5 RON 92-II",
+      ];
+      const newPrices = [
+        interaction.options.getInteger("price_ron95v"),
+        interaction.options.getInteger("price_ron95iii"),
+        interaction.options.getInteger("price_e10ron95v"),
+        interaction.options.getInteger("price_e5ron92"),
       ];
 
-      let prevData = null;
-      if (fs.existsSync(pricesDataPath)) {
-        try {
-          const fileContent = fs.readFileSync(pricesDataPath, "utf8");
-          prevData = JSON.parse(fileContent);
-        } catch (e) {
-          console.log("Error reading previous data:", e.message);
-        }
-      }
+      const prevData = readPrevData(pricesDataPath);
+      const prevByTitle = new Map((prevData || []).map((p) => [p.title, p]));
 
-      const diffs = newPrices.map((newPrice, i) => {
-        if (prevData && prevData[i]) {
-          return newPrice - prevData[i].zone1_price;
-        }
-        return 0;
+      const currentData = gasTitles.map((title, i) => {
+        const prev = prevByTitle.get(title);
+        return {
+          petrolimex_id: prev ? prev.petrolimex_id : null,
+          date: prev ? prev.date : new Date().toISOString(),
+          title,
+          zone1_price: newPrices[i],
+          zone2_price: prev ? prev.zone2_price : newPrices[i],
+        };
       });
 
-      const today = moment().format("YYYY-MM-DD");
-      const currentData = newPrices.map((price, i) => ({
-        id: prevData && prevData[i] ? prevData[i].id : null,
-        created_at:
-          prevData && prevData[i]
-            ? prevData[i].created_at
-            : new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        petrolimex_id:
-          prevData && prevData[i] ? prevData[i].petrolimex_id : null,
-        date: `${today} 00:00:00`,
-        title: gasTitles[i],
-        zone1_price: price,
-        zone2_price: prevData && prevData[i] ? prevData[i].zone2_price : price,
-      }));
+      const items = withDiffs(currentData, prevData);
 
       fs.writeFileSync(
         pricesDataPath,
@@ -191,17 +175,26 @@ module.exports = {
         "utf-8",
       );
 
-      const sent = await sendAnnouncement(interaction, currentData, diffs);
+      const sent = await sendAnnouncement(interaction, items, isDev);
       if (sent) await interaction.editReply("Manual announcement sent!");
       else await interaction.editReply("Failed to send announcement.");
     }
   },
 };
 
-async function sendAnnouncement(interaction, gasData, diffs) {
+function readPrevData(pricesDataPath) {
+  if (!fs.existsSync(pricesDataPath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(pricesDataPath, "utf-8"));
+  } catch (e) {
+    console.log("Error reading previous data:", e.message);
+    return null;
+  }
+}
+
+async function sendAnnouncement(interaction, items, isDev) {
   const guildId = process.env.GAS_NOTIFY_GUILD_ID;
   const channelId = process.env.GAS_NOTIFY_CHANNEL_ID;
-  const isDev = process.env.DEV_MODE === "true";
 
   if (!guildId || !channelId) {
     console.error(
@@ -222,38 +215,7 @@ async function sendAnnouncement(interaction, gasData, diffs) {
     return false;
   }
 
-  const upEmoji = isDev
-    ? "<:up_small:1465930784685690922>"
-    : "<:up_small:1465964979114082314>";
-  const downEmoji = isDev
-    ? "<:down_small:1465930783108628552>"
-    : "<:down_small:1465964976823992370>";
-
-  const embeds = gasData.map((item, index) => {
-    const price = item.zone1_price;
-    const diff = diffs[index];
-    const displayTitle = item.title.replace(/^Xăng\s+/, "");
-
-    const emoji = diff < 0 ? downEmoji : diff > 0 ? upEmoji : "•";
-
-    const embedColor = diff < 0 ? "#7be863" : diff > 0 ? "#e85353" : "#808080";
-
-    return new EmbedBuilder()
-      .setTitle(displayTitle)
-      .addFields(
-        {
-          name: "Giá mới",
-          value: `${price.toLocaleString()} ₫/lít`,
-          inline: true,
-        },
-        {
-          name: "Chênh lệch",
-          value: `${emoji} ${Math.abs(diff).toLocaleString()} ₫/lít`,
-          inline: true,
-        },
-      )
-      .setColor(embedColor);
-  });
+  const embeds = buildGasEmbeds(items, isDev);
 
   try {
     await channel.send({
