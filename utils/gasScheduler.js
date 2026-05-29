@@ -1,9 +1,13 @@
 const cron = require("node-cron");
 const moment = require("moment-timezone");
-const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
-const { EmbedBuilder } = require("discord.js");
+const {
+  fetchTrackedGasPrices,
+  withDiffs,
+  pricesUnchanged,
+  buildGasEmbeds,
+} = require("./gasApi");
 
 let client = null;
 
@@ -69,26 +73,13 @@ async function checkAndAnnounceGasPrices() {
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
   const pricesDataPath = path.join(dataDir, "prices.json");
 
-  const today = moment().tz("Asia/Bangkok").format("YYYY-MM-DD");
-  const API_URL = `https://giaxanghomnay.com/api/pvdate/${today}`;
-
   try {
-    const response = await axios.get(API_URL);
-    const data = response.data;
+    const currentData = await fetchTrackedGasPrices();
 
-    if (!data || !data[0] || data[0].length < 4) {
-      console.log("[Gas Scheduler] No data available from API for today");
+    if (!currentData) {
+      console.log("[Gas Scheduler] No data available from API");
       return;
     }
-
-    const petrolimexData = data[0];
-    
-    const currentData = [
-      petrolimexData[2],
-      petrolimexData[1],
-      petrolimexData[0],
-      petrolimexData[3],
-    ];
 
     let prevData = null;
     if (fs.existsSync(pricesDataPath)) {
@@ -100,22 +91,12 @@ async function checkAndAnnounceGasPrices() {
       }
     }
 
-    if (!isDev && prevData) {
-      const isIdentical = currentData.every(
-        (item, i) => prevData[i] && item.zone1_price === prevData[i].zone1_price
-      );
-      if (isIdentical) {
-        console.log("[Gas Scheduler] Prices unchanged, skipping announcement");
-        return;
-      }
+    if (!isDev && pricesUnchanged(currentData, prevData)) {
+      console.log("[Gas Scheduler] Prices unchanged, skipping announcement");
+      return;
     }
 
-    const diffs = currentData.map((item, i) => {
-      if (prevData && prevData[i]) {
-        return item.zone1_price - prevData[i].zone1_price;
-      }
-      return 0;
-    });
+    const items = withDiffs(currentData, prevData);
 
     fs.writeFileSync(
       pricesDataPath,
@@ -123,7 +104,7 @@ async function checkAndAnnounceGasPrices() {
       "utf-8"
     );
 
-    const sent = await sendAnnouncement(currentData, diffs, channelId);
+    const sent = await sendAnnouncement(items, channelId);
 
     if (sent) {
       console.log("[Gas Scheduler] Automated announcement sent successfully!");
@@ -135,7 +116,7 @@ async function checkAndAnnounceGasPrices() {
   }
 }
 
-async function sendAnnouncement(gasData, diffs, channelId) {
+async function sendAnnouncement(items, channelId) {
   const guildId = process.env.GAS_NOTIFY_GUILD_ID;
   const isDev = process.env.DEV_MODE === "true";
 
@@ -158,34 +139,7 @@ async function sendAnnouncement(gasData, diffs, channelId) {
     return false;
   }
 
-  const upEmoji = isDev ? "<:up_small:1465930784685690922>" : "<:up_small:1465964979114082314>";
-  const downEmoji = isDev ? "<:down_small:1465930783108628552>" : "<:down_small:1465964976823992370>";
-  
-  const embeds = gasData.map((item, index) => {
-    const price = item.zone1_price;
-    const diff = diffs[index];
-    const displayTitle = item.title.replace(/^Xăng\s+/, "");
-    
-    const emoji = diff < 0 ? downEmoji : diff > 0 ? upEmoji : "•";
-    
-    const embedColor = diff < 0 ? "#7be863" : diff > 0 ? "#e85353" : "#808080";
-    
-    return new EmbedBuilder()
-      .setTitle(displayTitle)
-      .addFields(
-        {
-          name: "Giá mới",
-          value: `${price.toLocaleString()} ₫/lít`,
-          inline: true
-        },
-        {
-          name: "Chênh lệch",
-          value: `${emoji} ${Math.abs(diff).toLocaleString()} ₫/lít`,
-          inline: true
-        }
-      )
-      .setColor(embedColor);
-  });
+  const embeds = buildGasEmbeds(items, isDev);
 
   try {
     await channel.send({
