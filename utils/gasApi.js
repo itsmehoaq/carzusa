@@ -21,9 +21,7 @@ const X_REQUEST = Buffer.from(JSON.stringify(PETROLIMEX_FILTER)).toString(
 const API_URL = `https://portals.petrolimex.com.vn/~apis/portals/cms.item/search?x-request=${X_REQUEST}`;
 
 // Products excluded from announcements, keyed by Petrolimex item ID.
-const EXCLUDED_IDS = new Set([
-  "85176bf8a6dd45d597c6980f7a674316", // Xăng E10 RON 95-III
-]);
+const EXCLUDED_IDS = new Set();
 
 // Items are split into individual embeds (gasolines) vs a single combined
 // embed (oils) by their Vietnamese title prefix.
