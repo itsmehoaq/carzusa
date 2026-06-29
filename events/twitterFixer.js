@@ -18,9 +18,12 @@ module.exports = {
       const tweetId = urlMatch[4];
 
       const matchEndIndex = urlMatch.index + urlMatch[0].length;
-      const remainingText = content.slice(matchEndIndex);
-      const isMediaSpecific = /^\/(photo|video)\/\d+/.test(remainingText);
-      const isEn = /\/en($|\?)/.test(remainingText);
+      const urlTail = content.slice(matchEndIndex).match(/^[^\s<>]*/)?.[0] || "";
+      const normalizedUrlTail = urlTail.replace(/[.,!?;:)]$/, "");
+      const isMediaSpecific = /^\/(photo|video)\/\d+/.test(normalizedUrlTail);
+      const isEn =
+        /^\/en(?:$|[/?#])/.test(normalizedUrlTail) ||
+        /^\?[^#]*\/en(?:$|[/?#])/.test(normalizedUrlTail);
 
       const isGenericI = username === "i";
 
@@ -42,13 +45,16 @@ module.exports = {
           msgContent = ` -# [Original Tweet](${fixedUrl})`;
         }
 
-        const tipText = "\n\n-# Did you know: adding `/en` to the end of the URL to translate the post to :flag_gb: English! ";
+        const tipText =
+          "\n\n-# Did you know: adding `/en` to the end of the URL can translate the post to :flag_gb: English? ";
 
-        try { await message.suppressEmbeds(true); } catch (e) {}
+        try {
+          await message.suppressEmbeds(true);
+        } catch (e) {}
 
         const reply = await message.reply({
           content: msgContent + tipText,
-          allowedMentions: { repliedUser: false }
+          allowedMentions: { repliedUser: false },
         });
 
         setTimeout(() => {
