@@ -459,3 +459,94 @@ test("parseCommentContent falls back to the base64 id and pulls video media", ()
 test("parseCommentContent returns null for an unrenderable comment", () => {
   assert.strictEqual(parseCommentContent(commentBlocks(), "333"), null);
 });
+
+const { extractPostId, canonicalStoryPostId, getPostJson, getInteractionCounts } = require("../utils/facebook");
+
+test("extractPostId handles every post URL shape", () => {
+  assert.strictEqual(extractPostId("/somepage/posts/pfbid123"), "pfbid123");
+  assert.strictEqual(extractPostId("/groups/g/posts/456/"), "456");
+  assert.strictEqual(extractPostId("/permalink/789"), "789");
+  assert.strictEqual(extractPostId("/story.php?story_fbid=111&id=2"), "111");
+  assert.strictEqual(extractPostId("/groups/g?multi_permalinks=222"), "222");
+  assert.strictEqual(extractPostId("/reel/333"), "333");
+  assert.strictEqual(extractPostId("/somepage"), null);
+});
+
+test("canonicalStoryPostId reads the id out of a story wwwURL", () => {
+  assert.strictEqual(canonicalStoryPostId("https://www.facebook.com/groups/g/posts/456/"), "456");
+  assert.strictEqual(canonicalStoryPostId("https://www.facebook.com/page/posts/789"), "789");
+  assert.strictEqual(canonicalStoryPostId("https://evil.example/page/posts/789"), null);
+});
+
+test("getPostJson picks the block whose story matches the requested post", () => {
+  const wanted = {
+    data: {
+      comet_ufi_summary_and_actions_renderer: {},
+      content: { story: { post_id: "456", wwwURL: "https://www.facebook.com/page/posts/456" } },
+    },
+    i18n_reaction_count: "1",
+  };
+  const decoy = {
+    data: {
+      comet_ufi_summary_and_actions_renderer: {},
+      content: { story: { post_id: "999", wwwURL: "https://www.facebook.com/page/posts/999" } },
+    },
+    i18n_reaction_count: "1",
+  };
+
+  const picked = getPostJson([block(decoy), block(wanted)], "456");
+  assert.strictEqual(picked.data.content.story.post_id, "456");
+
+  const fallback = getPostJson([block(decoy), block(wanted)]);
+  assert.strictEqual(fallback.data.content.story.post_id, "999");
+});
+
+test("getInteractionCounts reads adaptive renderers and the focal feedback", () => {
+  const postJson = {
+    payload: [
+      {
+        comet_ufi_summary_and_actions_renderer: {
+          feedback: { subscription_target_id: "decoy", i18n_reaction_count: "999" },
+        },
+      },
+      {
+        comet_ufi_summary_and_actions_renderer: {
+          feedback: {
+            subscription_target_id: "456",
+            i18n_reaction_count: "0",
+            i18n_share_count: "0",
+            comment_rendering_instance: { comments: { total_count: 0 } },
+            adaptive_ufi_action_renderers: [
+              { feedback: { reaction_count: { count: 19 } } },
+              { feedback: { comment_rendering_instance: { comments: { total_count: 77 } } } },
+              { feedback: { share_count: { count: 5 } } },
+            ],
+          },
+        },
+      },
+    ],
+  };
+
+  assert.deepStrictEqual(getInteractionCounts(postJson, "456"), {
+    likes: "19",
+    comments: "77",
+    shares: "5",
+  });
+});
+
+test("getInteractionCounts still reads the legacy i18n fields", () => {
+  const postJson = {
+    comet_ufi_summary_and_actions_renderer: {
+      feedback: {
+        i18n_reaction_count: "12",
+        i18n_share_count: "3",
+        comment_rendering_instance: { comments: { total_count: 4 } },
+      },
+    },
+  };
+  assert.deepStrictEqual(getInteractionCounts(postJson), {
+    likes: "12",
+    comments: "4",
+    shares: "3",
+  });
+});

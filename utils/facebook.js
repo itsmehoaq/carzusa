@@ -401,7 +401,81 @@ const getJsonBlocks = (html, sort = true) => {
   }).filter(b => b.parsed !== null);
 };
 
-function getPostJson(jsonBlocks) {
+const POST_ID_RE =
+  /\/posts\/(?:[^/?]+\/)?([A-Za-z0-9]+)|\/permalink\/([A-Za-z0-9]+)|[?&]story_fbid=([A-Za-z0-9]+)|[?&]multi_permalinks=([A-Za-z0-9]+)|\/videos\/(?:[^/?]+\/)?([A-Za-z0-9]+)|\/reel\/([A-Za-z0-9]+)/;
+
+const extractPostId = (pathOrUrl) => {
+  const match = POST_ID_RE.exec(pathOrUrl || '');
+  return match ? match.slice(1).find(Boolean) || null : null;
+};
+
+const isValidPostId = (id) => typeof id === 'string' && /^[A-Za-z0-9]+$/.test(id);
+
+/// The post id a story's own wwwURL points at. facebed-rusty: json_post.rs.
+const canonicalStoryPostId = (storyUrl) => {
+  let parsed;
+  try {
+    parsed = new URL(storyUrl);
+  } catch {
+    return null;
+  }
+  if (!/(^|\.)facebook\.com$/.test(parsed.hostname)) return null;
+
+  const segments = parsed.pathname.replace(/^\/|\/$/g, '').split('/').filter(Boolean);
+  const [a, b, c, d] = segments;
+
+  if (a === 'groups' && (c === 'posts' || c === 'permalink') && segments.length === 4) {
+    return isValidPostId(d) ? d : null;
+  }
+  if (a !== 'groups' && b === 'posts' && segments.length === 3) return isValidPostId(c) ? c : null;
+  if (a !== 'groups' && b === 'posts' && segments.length === 4) return isValidPostId(d) ? d : null;
+  if (a === 'permalink' && segments.length === 2) return isValidPostId(b) ? b : null;
+  if (segments.length === 1 && (a === 'story.php' || a === 'permalink.php')) {
+    const id = parsed.searchParams.get('story_fbid');
+    return isValidPostId(id) ? id : null;
+  }
+  if (a === 'groups' && segments.length === 2) {
+    const id = parsed.searchParams.get('multi_permalinks');
+    return isValidPostId(id) ? id : null;
+  }
+  return null;
+};
+
+const canonicalPagePostId = (meta) =>
+  canonicalStoryPostId(meta?.canonicalUrl || '') || canonicalStoryPostId(meta?.ogUrl || '');
+
+const storyMatchesPostId = (story, postId) =>
+  String(story?.post_id ?? '') === String(postId) ||
+  (typeof story?.wwwURL === 'string' && canonicalStoryPostId(story.wwwURL) === String(postId));
+
+/// Pick the block holding the REQUESTED story. Pages with several stories
+/// (group feeds, related posts) otherwise hand back whichever came first.
+/// Deviation from facebed: it returns nothing when an id is given and no block
+/// matches; we still fall back to the first reaction block, so a Facebook shape
+/// change degrades instead of breaking.
+function getPostJson(jsonBlocks, postId, canonicalPostId) {
+  if (postId) {
+    for (const block of jsonBlocks) {
+      const mentionsCandidate =
+        block.json.includes(postId) || (canonicalPostId && block.json.includes(canonicalPostId));
+      if (!mentionsCandidate) continue;
+
+      let story;
+      try {
+        story = getRootNode(block.parsed)?.content?.story;
+      } catch (e) {
+        continue;
+      }
+      if (!story) continue;
+      if (
+        storyMatchesPostId(story, postId) ||
+        (canonicalPostId && storyMatchesPostId(story, canonicalPostId))
+      ) {
+        return block.parsed;
+      }
+    }
+  }
+
   for (const block of jsonBlocks) {
     if (hasKeys(block.parsed, 'i18n_reaction_count')) {
       return block.parsed;
@@ -447,23 +521,44 @@ function getRootNode(postJson) {
   throw new Error('Cannot process post - no root node found');
 }
 
-function getInteractionCounts(postJson) {
-  const postFeedback = findFirstByKey(postJson, 'comet_ufi_summary_and_actions_renderer');
-  if (!postFeedback || !postFeedback.feedback) {
-    return { likes: null, comments: null, shares: null };
-  }
+/// Newer pages zero out the legacy i18n_* fields and put the real numbers in
+/// feedback.adaptive_ufi_action_renderers[]. facebed-rusty: parsers/util.rs.
+function getInteractionCounts(postJson, postId) {
+  const renderers = findAllByKey(postJson, 'comet_ufi_summary_and_actions_renderer');
+  const focal =
+    (postId &&
+      renderers.find(
+        (r) => String(r?.feedback?.subscription_target_id ?? '') === String(postId)
+      )) ||
+    renderers[0];
 
-  const fb = postFeedback.feedback;
-  const reactions = fb.i18n_reaction_count != null ? String(fb.i18n_reaction_count) : null;
-  const shares = fb.i18n_share_count != null ? String(fb.i18n_share_count) : null;
+  const fb = focal?.feedback;
+  if (!fb) return { likes: null, comments: null, shares: null };
 
-  let comments = null;
-  try {
-    const totalCount = fb.comment_rendering_instance?.comments?.total_count;
-    if (totalCount != null) comments = String(totalCount);
-  } catch (e) {}
+  const adaptive = Array.isArray(fb.adaptive_ufi_action_renderers)
+    ? fb.adaptive_ufi_action_renderers
+    : [];
+  const fromAdaptive = (key, pick) => {
+    for (const item of adaptive) {
+      const value = pick(findFirstByKey(item, key));
+      if (value != null) return humanFormat(value);
+    }
+    return null;
+  };
 
-  return { likes: reactions, comments, shares };
+  const likes =
+    fromAdaptive('reaction_count', (n) => n?.count) ??
+    (fb.i18n_reaction_count != null ? String(fb.i18n_reaction_count) : null);
+  const shares =
+    fromAdaptive('share_count', (n) => n?.count) ??
+    (fb.i18n_share_count != null ? String(fb.i18n_share_count) : null);
+  const comments =
+    fromAdaptive('comment_rendering_instance', (n) => n?.comments?.total_count) ??
+    (fb.comment_rendering_instance?.comments?.total_count != null
+      ? String(fb.comment_rendering_instance.comments.total_count)
+      : null);
+
+  return { likes, comments, shares };
 }
 
 function getGroupNameFromJson(jsonBlocks) {
@@ -1821,9 +1916,11 @@ const scrapePost = async (url) => {
         ]);
         structuredParsingSucceeded = true;
       } else {
-        const postJson = getPostJson(jsonBlocks);
+        const postId = extractPostId(normalizedUrl);
+        const canonicalPostId = canonicalPagePostId(mobilePostInfo.meta);
+        const postJson = getPostJson(jsonBlocks, postId, canonicalPostId);
         const rootNode = getRootNode(postJson);
-        const counts = getInteractionCounts(rootNode);
+        const counts = getInteractionCounts(rootNode, postId);
         const authorAndText = extractAuthorAndText(rootNode);
         const postDate = extractPostDate(rootNode);
         const groupName = getGroupNameFromJson(jsonBlocks) || mobilePostInfo.groupName;
@@ -1955,6 +2052,10 @@ module.exports = {
   parseSinglePhotoContent,
   commentIdIn,
   parseCommentContent,
+  extractPostId,
+  canonicalStoryPostId,
+  getPostJson,
+  getInteractionCounts,
   videoCandidatesInNode,
   videoLinkInNode,
   thumbnailInNode,
