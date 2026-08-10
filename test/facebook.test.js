@@ -558,3 +558,35 @@ test("isGroupPostUrl only trusts /groups/ paths", () => {
   assert.strictEqual(isGroupPostUrl("https://www.facebook.com/page/posts/1"), false);
   assert.strictEqual(isGroupPostUrl("not a url"), false);
 });
+
+const { parseMediaFromJsonBlocks } = require("../utils/facebook");
+
+const scriptBlock = (obj) => {
+  const payload = JSON.stringify(obj);
+  return `<script type="application/json" data-content-len="${payload.length}" data-sjs>${payload}</script>`;
+};
+
+test("parseMediaFromJsonBlocks returns video candidate lists alongside images", () => {
+  const html = scriptBlock({
+    i18n_reaction_count: "5",
+    attachment: {
+      media: {
+        videoDeliveryResponseFragment: {
+          videoDeliveryResponseResult: {
+            progressive_urls: [
+              { progressive_url: "https://video.fbcdn.net/sd.mp4", metadata: { quality: "SD" } },
+              { progressive_url: "https://video.fbcdn.net/hd.mp4", metadata: { quality: "HD" } },
+            ],
+          },
+        },
+        photo_image: { uri: "https://img.fbcdn.net/p.jpg" },
+      },
+    },
+  });
+
+  const media = parseMediaFromJsonBlocks(html);
+  assert.deepStrictEqual(media.videos, [
+    ["https://video.fbcdn.net/hd.mp4", "https://video.fbcdn.net/sd.mp4"],
+  ]);
+  assert.deepStrictEqual(media.images, ["https://img.fbcdn.net/p.jpg"]);
+});

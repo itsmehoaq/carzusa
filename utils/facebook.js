@@ -2041,6 +2041,8 @@ module.exports = {
   findFirstByKey,
   findAllByKey,
   hasKeys,
+  getJsonBlocks,
+  parseMediaFromJsonBlocks,
   cleanFacebookUrl,
   extractShareUrl,
   isGroupPostUrl,
