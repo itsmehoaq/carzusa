@@ -353,3 +353,40 @@ test("classifyFacebookUrl gives type=3 photos top priority", () => {
     "photocom"
   );
 });
+
+const { parseSinglePhotoContent } = require("../utils/facebook");
+
+test("parseSinglePhotoContent takes the longest caption and the prefetch image", () => {
+  const blocks = [
+    block({
+      message_preferred_body: {},
+      container_story: {},
+      data: {
+        owner: { id: "44", name: "Photog" },
+        created_time: 1750000000,
+        message: { text: "Short preview..." },
+        message_preferred_body: { text: "Full caption with every paragraph preserved." },
+        container_story: { message: { text: "Medium caption" } },
+      },
+      prefetch_uris_v2: [{ uri: "https://img.fbcdn.net/single.jpg" }],
+    }),
+    block({
+      comet_ufi_summary_and_actions_renderer: {
+        feedback: {
+          i18n_reaction_count: "12",
+          i18n_share_count: "3",
+          comment_rendering_instance: { comments: { total_count: 4 } },
+        },
+      },
+    }),
+  ];
+
+  const photo = parseSinglePhotoContent(blocks);
+  assert.strictEqual(photo.authorName, "Photog");
+  assert.strictEqual(photo.text, "Full caption with every paragraph preserved.");
+  assert.deepStrictEqual(photo.imageLinks, ["https://img.fbcdn.net/single.jpg"]);
+  assert.strictEqual(photo.likes, "12");
+  assert.strictEqual(photo.comments, "4");
+  assert.strictEqual(photo.shares, "3");
+  assert.strictEqual(photo.postDate, 1750000000);
+});

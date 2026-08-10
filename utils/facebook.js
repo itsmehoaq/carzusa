@@ -969,6 +969,45 @@ function parsePhotocomContent(jsonBlocks) {
   };
 }
 
+/// /photo/ and /photo.php pages have no content.story — the caption lives in
+/// message_preferred_body / container_story and the image in prefetch_uris_v2.
+/// facebed-rusty: parsers/single_photo.rs.
+function parseSinglePhotoContent(jsonBlocks) {
+  const contentBlock = jsonBlocks.find((b) =>
+    hasKeys(b.parsed, 'message_preferred_body', 'container_story')
+  );
+  const data = contentBlock ? findFirstByKey(contentBlock.parsed, 'data') : null;
+  if (!data) throw new Error('Cannot process single photo (cn)');
+
+  const text =
+    [data.message_preferred_body?.text, data.container_story?.message?.text, data.message?.text]
+      .filter((t) => typeof t === 'string' && t.trim())
+      .sort((a, b) => b.length - a.length)[0] || '';
+
+  const imageBlock = jsonBlocks.find((b) => hasKeys(b.parsed, 'prefetch_uris_v2'));
+  const image = imageBlock
+    ? findFirstByKey(imageBlock.parsed, 'prefetch_uris_v2')?.[0]?.uri
+    : null;
+  if (!image) throw new Error('Cannot process single photo (img)');
+
+  const interactionBlock = jsonBlocks.find((b) =>
+    hasKeys(b.parsed, 'comet_ufi_summary_and_actions_renderer')
+  );
+  const counts = interactionBlock
+    ? getInteractionCounts(interactionBlock.parsed)
+    : { likes: null, comments: null, shares: null };
+
+  return {
+    authorName: data.owner?.name || null,
+    text: text.trim(),
+    postDate: data.created_time != null ? parseInt(data.created_time, 10) : null,
+    imageLinks: [image],
+    likes: counts.likes,
+    comments: counts.comments,
+    shares: counts.shares,
+  };
+}
+
 const getBaseHeaders = () => ({
   Accept:
     "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
@@ -1659,6 +1698,18 @@ const scrapePost = async (url) => {
         setMessage(photocom.text, result.postInfo.url || url);
         await addMediaDownloads(photocom.imageLinks);
         structuredParsingSucceeded = true;
+      } else if (routed.kind === "photo") {
+        const photo = parseSinglePhotoContent(jsonBlocks);
+
+        result.authorName = photo.authorName;
+        result.postDate = photo.postDate;
+        result.likes = photo.likes;
+        result.comments = photo.comments;
+        result.shares = photo.shares;
+
+        setMessage(photo.text, result.postInfo.url || url);
+        await addMediaDownloads(photo.imageLinks);
+        structuredParsingSucceeded = true;
       } else if (routed.kind === "stories") {
         const storyData = parseStoriesContent(jsonBlocks);
 
@@ -1803,6 +1854,7 @@ module.exports = {
   parseWatchContent,
   parseStoriesContent,
   parsePhotocomContent,
+  parseSinglePhotoContent,
   videoCandidatesInNode,
   videoLinkInNode,
   thumbnailInNode,
