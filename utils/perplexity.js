@@ -30,7 +30,7 @@ async function getAIReply(query) {
         input: query,
         tools: [{ type: "google_search" }],
         generation_config: {
-          temperature: 0.3,
+          temperature: 1,
           max_output_tokens: 1024,
           thinking_level: "high",
           thinking_summaries: "none",
