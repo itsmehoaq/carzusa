@@ -248,3 +248,68 @@ test("parseWatchContent reports the generic watch feed distinctly", () => {
     /generic watch feed/
   );
 });
+
+const { parseStoriesContent } = require("../utils/facebook");
+
+test("parseStoriesContent reads a video story with its preview", () => {
+  const blocks = [
+    block({
+      data: {
+        bucket: {
+          owner: { id: "9", name: "Story Owner" },
+          unified_stories_with_notes: {
+            edges: [
+              {
+                node: {
+                  creation_time: 1750000000,
+                  story_card_info: {
+                    permalink_info: { uri: "https://www.facebook.com/stories/9/abc" },
+                  },
+                  attachments: [
+                    {
+                      media: {
+                        playable_url: "https://video.fbcdn.net/story.mp4",
+                        preferred_thumbnail: { image: { uri: "https://img.fbcdn.net/story.jpg" } },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      },
+    }),
+  ];
+
+  const story = parseStoriesContent(blocks);
+  assert.strictEqual(story.authorName, "Story Owner");
+  assert.strictEqual(story.postUrl, "https://www.facebook.com/stories/9/abc");
+  assert.strictEqual(story.postDate, 1750000000);
+  assert.deepStrictEqual(story.videoCandidates, ["https://video.fbcdn.net/story.mp4"]);
+  assert.deepStrictEqual(story.imageLinks, []);
+  assert.strictEqual(story.thumbnail, "https://img.fbcdn.net/story.jpg");
+});
+
+test("parseStoriesContent reads a photo story", () => {
+  const blocks = [
+    block({
+      bucket: {
+        owner: { name: "Owner" },
+        unified_stories_with_notes: {
+          edges: [
+            { node: { attachments: [{ media: { image: { uri: "https://img.fbcdn.net/s.jpg" } } }] } },
+          ],
+        },
+      },
+    }),
+  ];
+
+  const story = parseStoriesContent(blocks);
+  assert.deepStrictEqual(story.imageLinks, ["https://img.fbcdn.net/s.jpg"]);
+  assert.deepStrictEqual(story.videoCandidates, []);
+});
+
+test("parseStoriesContent reports expired stories distinctly", () => {
+  assert.throws(() => parseStoriesContent([block({ nothing: true })]), /expired or restricted/);
+});

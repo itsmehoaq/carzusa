@@ -147,6 +147,8 @@ const classifyFacebookUrl = (rawUrl) => {
   }
   const path = parsed.pathname;
 
+  if (/^\/stories\/\d+\/[A-Za-z0-9=_-]+/.test(path)) return { kind: "stories", url: rawUrl };
+
   const bareVideo = path.match(/^\/videos\/(?:[^/]+\/)?(\d+)/);
   if (bareVideo) {
     parsed.pathname = `/reel/${bareVideo[1]}`;
@@ -902,6 +904,37 @@ function parseWatchContent(jsonBlocks, videoId, meta = {}) {
   };
 }
 
+/// 24h stories: data.bucket.unified_stories_with_notes.edges[0].node.
+/// facebed-rusty: parsers/stories.rs.
+function parseStoriesContent(jsonBlocks) {
+  for (const block of jsonBlocks) {
+    for (const usn of findAllByKey(block.parsed, 'unified_stories_with_notes')) {
+      const node = usn?.edges?.[0]?.node;
+      if (!node?.attachments) continue;
+
+      const bucket =
+        collectObjects(block.parsed).find((obj) => obj.unified_stories_with_notes === usn) || {};
+      const owner = bucket.owner || {};
+      const media = node.attachments?.[0]?.media;
+      if (!media) continue;
+
+      const videoCandidates = videoCandidatesInNode(media);
+      const preview = media.preferred_thumbnail?.image?.uri || media.image?.uri || null;
+
+      return {
+        authorName: owner.name || null,
+        text: '',
+        postUrl: node.story_card_info?.permalink_info?.uri || null,
+        postDate: node.creation_time != null ? parseInt(node.creation_time, 10) : null,
+        imageLinks: videoCandidates.length === 0 && preview ? [preview] : [],
+        videoCandidates,
+        thumbnail: videoCandidates.length > 0 ? preview : null,
+      };
+    }
+  }
+  throw new Error('Story unavailable (expired or restricted)');
+}
+
 const getBaseHeaders = () => ({
   Accept:
     "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
@@ -1581,6 +1614,19 @@ const scrapePost = async (url) => {
           watchData.videoCandidates.length > 0 ? [watchData.videoCandidates] : []
         );
         structuredParsingSucceeded = true;
+      } else if (routed.kind === "stories") {
+        const storyData = parseStoriesContent(jsonBlocks);
+
+        result.authorName = storyData.authorName;
+        result.postDate = storyData.postDate;
+        result.isReel = storyData.videoCandidates.length > 0;
+        result.postInfo.url = storyData.postUrl || result.postInfo.url;
+
+        await addMediaDownloads([
+          ...(storyData.videoCandidates.length > 0 ? [storyData.videoCandidates] : []),
+          ...storyData.imageLinks,
+        ]);
+        structuredParsingSucceeded = true;
       } else {
         const postJson = getPostJson(jsonBlocks);
         const rootNode = getRootNode(postJson);
@@ -1653,7 +1699,7 @@ const isFacebookUrl = (url) => {
     /https?:\/\/(www\.|m\.)?facebook\.com\/[^/]+\/posts\/(\d+|pfbid[a-zA-Z0-9]+)/,
     /https?:\/\/(www\.|m\.)?facebook\.com\/watch\/?\?v=\d+/,
     /https?:\/\/(www\.|m\.)?facebook\.com\/photo\/?\?fbid=\d+/,
-    /https?:\/\/(www\.|m\.)?facebook\.com\/stories\/\d+/,
+    /https?:\/\/(www\.|m\.)?facebook\.com\/stories\/\d+\/[A-Za-z0-9=_-]+/,
     /https?:\/\/(www\.|m\.)?facebook\.com\/permalink\.php\?story_fbid=/,
     /https?:\/\/(www\.|m\.)?facebook\.com\/groups\/[^/]+\/permalink\/\d+/,
     /https?:\/\/(www\.|m\.)?facebook\.com\/groups\/\d+\/?\?multi_permalinks=\d+/,
@@ -1709,6 +1755,7 @@ module.exports = {
   targetVideoId,
   classifyFacebookUrl,
   parseWatchContent,
+  parseStoriesContent,
   videoCandidatesInNode,
   videoLinkInNode,
   thumbnailInNode,
