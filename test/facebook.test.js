@@ -173,3 +173,78 @@ test("extractShareUrl unwraps a facebook share_url and ignores foreign hosts", (
   );
   assert.strictEqual(extractShareUrl("https://www.facebook.com/reel/123/"), null);
 });
+
+const { classifyFacebookUrl, targetVideoId, parseWatchContent } = require("../utils/facebook");
+
+test("classifyFacebookUrl rewrites bare /videos/<id> to a reel", () => {
+  const out = classifyFacebookUrl("https://www.facebook.com/videos/123456");
+  assert.strictEqual(out.kind, "reel");
+  assert.strictEqual(out.url, "https://www.facebook.com/reel/123456");
+});
+
+test("classifyFacebookUrl keeps page video posts on the watch parser", () => {
+  const out = classifyFacebookUrl("https://www.facebook.com/somepage/videos/some-title/123456/");
+  assert.strictEqual(out.kind, "watch");
+  assert.strictEqual(out.url, "https://www.facebook.com/somepage/videos/some-title/123456/");
+
+  assert.strictEqual(classifyFacebookUrl("https://www.facebook.com/watch/?v=99").kind, "watch");
+  assert.strictEqual(classifyFacebookUrl("https://www.facebook.com/reel/99").kind, "reel");
+  assert.strictEqual(classifyFacebookUrl("https://www.facebook.com/photo/?fbid=99").kind, "photo");
+  assert.strictEqual(classifyFacebookUrl("https://www.facebook.com/page/posts/99").kind, "post");
+});
+
+test("targetVideoId reads ?v= and the last numeric path segment", () => {
+  assert.strictEqual(targetVideoId("https://www.facebook.com/watch/?v=2000020650901604"), "2000020650901604");
+  assert.strictEqual(targetVideoId("https://www.facebook.com/page/videos/some-title/123456/"), "123456");
+  assert.strictEqual(targetVideoId("https://www.facebook.com/page/videos/some-title/"), null);
+});
+
+test("parseWatchContent prefers the requested video over a related one", () => {
+  const blocks = [
+    block({
+      result: {
+        data: {
+          id: "999",
+          title: { text: "related" },
+          feedback: { comment_rendering_instance: {}, video_view_count_renderer: {} },
+        },
+      },
+    }),
+    block({
+      result: {
+        data: {
+          id: "123",
+          title: { text: "requested" },
+          owner: { name: "Right Page" },
+          feedback: {
+            comment_rendering_instance: {},
+            video_view_count_renderer: {},
+            reaction_count: { count: 19 },
+            total_comment_count: 77,
+          },
+          videoDeliveryResponseFragment: {
+            videoDeliveryResponseResult: {
+              progressive_urls: [{ progressive_url: "https://video.fbcdn.net/right.mp4" }],
+            },
+          },
+        },
+      },
+    }),
+    block({ creation_time: 1750000000 }),
+  ];
+
+  const watch = parseWatchContent(blocks, "123", {});
+  assert.strictEqual(watch.text, "requested");
+  assert.strictEqual(watch.authorName, "Right Page");
+  assert.deepStrictEqual(watch.videoCandidates, ["https://video.fbcdn.net/right.mp4"]);
+  assert.strictEqual(watch.likes, "19");
+  assert.strictEqual(watch.comments, "77");
+  assert.strictEqual(watch.postDate, 1750000000);
+});
+
+test("parseWatchContent reports the generic watch feed distinctly", () => {
+  assert.throws(
+    () => parseWatchContent([], "123", { canonicalUrl: "https://www.facebook.com/watch/" }),
+    /generic watch feed/
+  );
+});

@@ -115,6 +115,51 @@ const extractShareUrl = (rawUrl) => {
   return null;
 };
 
+/// The video the user actually asked for: ?v= on /watch, else the last numeric
+/// path segment. facebed-rusty: parsers/video_watch.rs.
+const targetVideoId = (rawUrl) => {
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return null;
+  }
+  if (parsed.pathname.replace(/^\//, "").startsWith("watch")) {
+    const v = parsed.searchParams.get("v");
+    if (v && /^\d+$/.test(v)) return v;
+  }
+  const segments = parsed.pathname.split("/").filter(Boolean);
+  for (let i = segments.length - 1; i >= 0; i--) {
+    if (/^\d+$/.test(segments[i])) return segments[i];
+  }
+  return null;
+};
+
+/// Which parser handles this URL, and the URL to fetch. facebed-rusty: routes.rs.
+/// Only BARE /videos/<id> becomes a reel — <page>/videos/<slug>/<id> is a real
+/// video viewer page and needs the watch parser.
+const classifyFacebookUrl = (rawUrl) => {
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return { kind: "post", url: rawUrl };
+  }
+  const path = parsed.pathname;
+
+  const bareVideo = path.match(/^\/videos\/(?:[^/]+\/)?(\d+)/);
+  if (bareVideo) {
+    parsed.pathname = `/reel/${bareVideo[1]}`;
+    return { kind: "reel", url: parsed.toString() };
+  }
+  if (/^\/reel\/\d+/.test(path)) return { kind: "reel", url: rawUrl };
+  if (/^\/photo(\.php)?\/?$/.test(path)) return { kind: "photo", url: rawUrl };
+  if (/^\/watch/.test(path) || /^\/[a-zA-Z0-9\-._]+\/videos\/(?:[^/]+\/)?\d+/.test(path)) {
+    return { kind: "watch", url: rawUrl };
+  }
+  return { kind: "post", url: rawUrl };
+};
+
 /// Group posts are the only place facebed trusts author markdown.
 const isGroupPostUrl = (rawUrl) => {
   try {
@@ -754,72 +799,106 @@ function parseReelContent(jsonBlocks) {
   };
 }
 
-function parseWatchContent(jsonBlocks) {
-  let contentData = null;
-  for (const block of jsonBlocks) {
-    if (hasKeys(block.parsed, 'comment_rendering_instance', 'video_view_count_renderer')) {
-      const resultNode = findFirstByKey(block.parsed, 'result');
-      if (resultNode && resultNode.data) {
-        contentData = resultNode.data;
-        break;
-      }
+const watchContentNode = (jsonBlocks, videoId) => {
+  const hasWatchKeys = (data) =>
+    data && hasKeys(data, 'comment_rendering_instance', 'video_view_count_renderer');
+
+  if (videoId) {
+    for (const block of jsonBlocks) {
+      const data = findFirstByKey(block.parsed, 'result')?.data;
+      if (hasWatchKeys(data) && blockMentionsId(data, videoId)) return data;
     }
   }
-  if (!contentData) throw new Error('Invalid watch link (cn)');
+  for (const block of jsonBlocks) {
+    if (!hasKeys(block.parsed, 'comment_rendering_instance', 'video_view_count_renderer')) continue;
+    const data = findFirstByKey(block.parsed, 'result')?.data;
+    if (data) return data;
+  }
+  return null;
+};
 
-  const postText = contentData.title?.text || '';
+const watchOwnerInNode = (node) => {
+  const keys = ['video_owner', 'owner', 'owning_profile', 'owner_as_page'];
+  for (const key of keys) {
+    if (ownerHasName(node?.[key])) return node[key];
+    if (ownerHasName(node?.[key]?.owner_as_page)) return node[key].owner_as_page;
+  }
+  for (const key of keys) {
+    for (const owner of findAllByKey(node, key)) {
+      if (ownerHasName(owner)) return owner;
+      if (ownerHasName(owner?.owner_as_page)) return owner.owner_as_page;
+    }
+  }
+  for (const actors of findAllByKey(node, 'actors')) {
+    if (!Array.isArray(actors)) continue;
+    for (const actor of actors) {
+      if (ownerHasName(actor)) return actor;
+    }
+  }
+  return null;
+};
+
+const watchOwner = (jsonBlocks, contentNode, videoId) => {
+  const direct = watchOwnerInNode(contentNode);
+  if (direct) return direct;
+  if (videoId) {
+    for (const block of jsonBlocks) {
+      if (!blockMentionsId(block.parsed, videoId)) continue;
+      const owner = watchOwnerInNode(block.parsed);
+      if (owner) return owner;
+    }
+  }
+  for (const block of jsonBlocks) {
+    if (!hasKeys(block.parsed, 'is_additional_profile_plus')) continue;
+    const owner = findFirstByKey(block.parsed, 'owner');
+    if (ownerHasName(owner)) return owner;
+  }
+  for (const block of jsonBlocks) {
+    const owner = findFirstByKey(block.parsed, 'owner');
+    if (ownerHasName(owner)) return owner;
+  }
+  return null;
+};
+
+function parseWatchContent(jsonBlocks, videoId, meta = {}) {
+  const contentData = watchContentNode(jsonBlocks, videoId);
+  if (!contentData) {
+    // FB sometimes serves the generic /watch feed instead of the requested
+    // video. Distinct message so callers can tell "no data" from "broken parse".
+    if (/^https?:\/\/[^/]+\/watch\/?$/.test(meta.canonicalUrl || '')) {
+      throw new Error('Facebook served the generic watch feed, not this video');
+    }
+    throw new Error('Invalid watch link (cn)');
+  }
+
+  let videoCandidates = videoCandidatesInNode(contentData);
+  if (videoCandidates.length === 0 && videoId) {
+    for (const block of jsonBlocks) {
+      if (!blockMentionsId(block.parsed, videoId)) continue;
+      videoCandidates = videoCandidatesInNode(block.parsed);
+      if (videoCandidates.length > 0) break;
+    }
+  }
+  if (videoCandidates.length === 0) {
+    for (const block of jsonBlocks) {
+      videoCandidates = videoCandidatesInNode(block.parsed);
+      if (videoCandidates.length > 0) break;
+    }
+  }
+
+  const owner = watchOwner(jsonBlocks, contentData, videoId);
   const reactionCount = contentData.feedback?.reaction_count?.count;
   const totalComments = contentData.feedback?.total_comment_count;
 
-  const likes = reactionCount != null ? humanFormat(reactionCount) : null;
-  const comments = totalComments != null ? humanFormat(totalComments) : null;
-  const shares = null;
-
-  let videoLink = null;
-  for (const block of jsonBlocks) {
-    if (hasKeys(block.parsed, 'browser_native_hd_url') || hasKeys(block.parsed, 'browser_native_sd_url')) {
-      const videoNode = findFirstByKey(block.parsed, 'videoDeliveryLegacyFields');
-      if (videoNode) {
-        for (const key of ['browser_native_hd_url', 'browser_native_sd_url']) {
-          const vUrl = findFirstByKey(videoNode, key);
-          if (vUrl && typeof vUrl === 'string' && vUrl.includes('fbcdn.net')) {
-            videoLink = vUrl;
-            break;
-          }
-        }
-        if (videoLink) break;
-      }
-    }
-  }
-
-  let opName = null;
-  for (const block of jsonBlocks) {
-    if (hasKeys(block.parsed, 'is_additional_profile_plus')) {
-      const owner = findFirstByKey(block.parsed, 'owner');
-      if (owner && owner.name) {
-        opName = owner.name;
-        break;
-      }
-    }
-  }
-
-  let postDate = null;
-  for (const block of jsonBlocks) {
-    const ct = findFirstByKey(block.parsed, 'creation_time');
-    if (ct != null) {
-      postDate = parseInt(ct, 10);
-      break;
-    }
-  }
-
   return {
-    authorName: opName,
-    text: postText,
-    videoLink,
-    postDate,
-    likes,
-    comments,
-    shares,
+    authorName: owner?.name || null,
+    text: contentData.title?.text || '',
+    videoCandidates,
+    thumbnail: thumbnailInNode(contentData),
+    postDate: findCreationTime(jsonBlocks),
+    likes: reactionCount != null ? humanFormat(reactionCount) : null,
+    comments: totalComments != null ? humanFormat(totalComments) : null,
+    shares: null,
   };
 }
 
@@ -1439,15 +1518,11 @@ const scrapePost = async (url) => {
 
     const cleanedUrl = cleanFacebookUrl(directUrl);
 
-    let normalizedUrl = cleanedUrl;
-    const videosMatch = cleanedUrl.match(/\/([^/]+)\/videos\/(\d+)/);
-    if (videosMatch) {
-      normalizedUrl = cleanedUrl.replace(/\/[^/]+\/videos\/(\d+)/, "/reel/$1").replace(/\/[^/]+\/watch\/(\d+)/, "/videos/$1");
-      console.log("[Facebook] Converted /videos/ URL to /reel/ format");
-    }
+    const routed = classifyFacebookUrl(cleanedUrl);
+    const normalizedUrl = routed.url;
+    const videoId = targetVideoId(normalizedUrl);
+    console.log(`[Facebook] Routed as ${routed.kind}: ${normalizedUrl}`);
 
-    const isReelUrl = /\/reel\/\d+/.test(normalizedUrl);
-    const isWatchUrl = /\/watch/.test(normalizedUrl);
     const cacheBuster = (normalizedUrl.includes("?") ? "&" : "?") + "_cb=" + Date.now();
     const response = await session.get(normalizedUrl + cacheBuster, {
       headers: {
@@ -1477,7 +1552,7 @@ const scrapePost = async (url) => {
       const jsonBlocks = getJsonBlocks(html, true);
       const unsortedJsonBlocks = getJsonBlocks(html, false);
 
-      if (isReelUrl) {
+      if (routed.kind === "reel") {
         const reelData = parseReelContent(unsortedJsonBlocks.length > 0 ? unsortedJsonBlocks : jsonBlocks);
 
         result.authorName = reelData.authorName;
@@ -1491,8 +1566,8 @@ const scrapePost = async (url) => {
         setMessage(reelData.text, result.postInfo.url || url);
         await addMediaDownloads(reelData.videoCandidates.length > 0 ? [reelData.videoCandidates] : []);
         structuredParsingSucceeded = true;
-      } else if (isWatchUrl) {
-        const watchData = parseWatchContent(jsonBlocks);
+      } else if (routed.kind === "watch") {
+        const watchData = parseWatchContent(jsonBlocks, videoId, mobilePostInfo.meta);
 
         result.authorName = watchData.authorName;
         result.postDate = watchData.postDate;
@@ -1502,7 +1577,9 @@ const scrapePost = async (url) => {
         result.isReel = true;
 
         setMessage(watchData.text, result.postInfo.url || url);
-        await addMediaDownloads(watchData.videoLink ? [watchData.videoLink] : []);
+        await addMediaDownloads(
+          watchData.videoCandidates.length > 0 ? [watchData.videoCandidates] : []
+        );
         structuredParsingSucceeded = true;
       } else {
         const postJson = getPostJson(jsonBlocks);
@@ -1629,6 +1706,9 @@ module.exports = {
   cleanFacebookUrl,
   extractShareUrl,
   isGroupPostUrl,
+  targetVideoId,
+  classifyFacebookUrl,
+  parseWatchContent,
   videoCandidatesInNode,
   videoLinkInNode,
   thumbnailInNode,
