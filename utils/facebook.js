@@ -1770,9 +1770,9 @@ const scrapePost = async (url) => {
     }
   };
 
-  const setMessage = (text, sourceUrl) => {
+  const setMessage = (text, sourceUrl, allowMarkdown = false) => {
     if (!text) return;
-    let message = escapeMarkdown(text.trim());
+    let message = allowMarkdown ? text.trim() : escapeMarkdown(text.trim());
     if (message.length > 727) {
       message = message.substring(0, 727) + "... [View more](" + sourceUrl + ")";
     }
@@ -1934,7 +1934,7 @@ const scrapePost = async (url) => {
         result.isReel = authorAndText.videoLinks.length > 0 && authorAndText.imageLinks.length === 0;
         result.postInfo.url = authorAndText.postUrl || result.postInfo.url || normalizedUrl;
 
-        setMessage(authorAndText.text, result.postInfo.url || url);
+        setMessage(authorAndText.text, result.postInfo.url || url, isGroupPostUrl(normalizedUrl));
         await addMediaDownloads([...authorAndText.videoLinks, ...authorAndText.imageLinks]);
         structuredParsingSucceeded = true;
       }

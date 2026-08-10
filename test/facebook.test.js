@@ -550,3 +550,11 @@ test("getInteractionCounts still reads the legacy i18n fields", () => {
     shares: "3",
   });
 });
+
+const { isGroupPostUrl } = require("../utils/facebook");
+
+test("isGroupPostUrl only trusts /groups/ paths", () => {
+  assert.strictEqual(isGroupPostUrl("https://www.facebook.com/groups/g/posts/1"), true);
+  assert.strictEqual(isGroupPostUrl("https://www.facebook.com/page/posts/1"), false);
+  assert.strictEqual(isGroupPostUrl("not a url"), false);
+});
