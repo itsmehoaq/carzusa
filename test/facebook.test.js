@@ -390,3 +390,72 @@ test("parseSinglePhotoContent takes the longest caption and the prefetch image",
   assert.strictEqual(photo.shares, "3");
   assert.strictEqual(photo.postDate, 1750000000);
 });
+
+const { commentIdIn, parseCommentContent } = require("../utils/facebook");
+
+const commentBlocks = () => [
+  block({
+    comment_rendering_instance: {
+      comments: {
+        edges: [
+          {
+            node: {
+              id: "Y29tbWVudDo5OTlfMTEx",
+              legacy_fbid: "111",
+              author: { name: "Alice", id: "42" },
+              preferred_body: { text: "first!" },
+              created_time: 1750000000,
+              feedback: { url: "https://www.facebook.com/x?comment_id=111" },
+              reactors: { count: 7 },
+            },
+          },
+          {
+            node: {
+              id: "Y29tbWVudDo5OTlfMjIy",
+              author: { name: "Bob", id: "43" },
+              preferred_body: { text: "video reply" },
+              created_time: 1750000100,
+              attachments: [
+                {
+                  media: {
+                    videoDeliveryResponseFragment: {
+                      videoDeliveryResponseResult: {
+                        progressive_urls: [{ progressive_url: "https://video.fbcdn.net/c.mp4" }],
+                      },
+                    },
+                    preferred_thumbnail: { image: { uri: "https://img.fbcdn.net/t.jpg" } },
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  }),
+];
+
+test("commentIdIn reads the comment_id query", () => {
+  assert.strictEqual(commentIdIn("https://www.facebook.com/reel/999?comment_id=111"), "111");
+  assert.strictEqual(commentIdIn("https://www.facebook.com/reel/999"), null);
+  assert.strictEqual(commentIdIn("https://www.facebook.com/reel/999?comment_id="), null);
+});
+
+test("parseCommentContent finds a comment by legacy_fbid", () => {
+  const post = parseCommentContent(commentBlocks(), "111");
+  assert.strictEqual(post.authorName, "Alice (\u{1F4AC})");
+  assert.strictEqual(post.text, "first!");
+  assert.strictEqual(post.likes, "7");
+  assert.strictEqual(post.postUrl, "https://www.facebook.com/x?comment_id=111");
+});
+
+test("parseCommentContent falls back to the base64 id and pulls video media", () => {
+  const post = parseCommentContent(commentBlocks(), "222");
+  assert.strictEqual(post.authorName, "Bob (\u{1F4AC})");
+  assert.deepStrictEqual(post.videoCandidates, ["https://video.fbcdn.net/c.mp4"]);
+  assert.strictEqual(post.thumbnail, "https://img.fbcdn.net/t.jpg");
+});
+
+test("parseCommentContent returns null for an unrenderable comment", () => {
+  assert.strictEqual(parseCommentContent(commentBlocks(), "333"), null);
+});

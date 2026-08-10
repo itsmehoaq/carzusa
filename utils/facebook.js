@@ -150,6 +150,7 @@ const classifyFacebookUrl = (rawUrl) => {
   if (parsed.searchParams.getAll("type").some((t) => t.includes("3"))) {
     return { kind: "photocom", url: rawUrl };
   }
+  if (parsed.searchParams.get("comment_id")) return { kind: "comment", url: rawUrl };
   if (/^\/stories\/\d+\/[A-Za-z0-9=_-]+/.test(path)) return { kind: "stories", url: rawUrl };
 
   const bareVideo = path.match(/^\/videos\/(?:[^/]+\/)?(\d+)/);
@@ -1008,6 +1009,82 @@ function parseSinglePhotoContent(jsonBlocks) {
   };
 }
 
+const commentIdIn = (rawUrl) => {
+  try {
+    return new URL(rawUrl).searchParams.get('comment_id') || null;
+  } catch {
+    return null;
+  }
+};
+
+/// FB comment `id` fields are base64 of `comment:<post_fbid>_<comment_fbid>`.
+const b64DecodeAscii = (s) => {
+  try {
+    return Buffer.from(s, 'base64').toString('utf8');
+  } catch {
+    return null;
+  }
+};
+
+const commentCandidateNodes = (parsed) => {
+  const out = [];
+  const accept = (node) => {
+    if (node?.preferred_body && node?.author) out.push(node);
+  };
+  for (const edges of findAllByKey(parsed, 'edges')) {
+    if (!Array.isArray(edges)) continue;
+    for (const edge of edges) accept(edge?.node);
+  }
+  for (const key of ['comment', 'attached_comment']) {
+    for (const node of findAllByKey(parsed, key)) accept(node);
+  }
+  return out;
+};
+
+const commentNodeMatches = (node, commentId) => {
+  if (node.legacy_fbid != null && String(node.legacy_fbid) === commentId) return true;
+  const needle = `comment_id=${commentId}`;
+  if (findAllByKey(node, 'url').some((u) => typeof u === 'string' && u.includes(needle))) {
+    return true;
+  }
+  if (typeof node.id === 'string') {
+    const decoded = b64DecodeAscii(node.id);
+    if (decoded?.startsWith('comment:') && decoded.endsWith(`_${commentId}`)) return true;
+  }
+  return false;
+};
+
+/// facebed-rusty: parsers/comment.rs. Returns null (not an error) when the
+/// comment isn't server-rendered — the caller then embeds the parent post.
+function parseCommentContent(jsonBlocks, commentId) {
+  if (!commentId) return null;
+
+  let node = null;
+  for (const b of jsonBlocks) {
+    node = commentCandidateNodes(b.parsed).find((n) => commentNodeMatches(n, commentId));
+    if (node) break;
+  }
+  if (!node) return null;
+
+  const videoCandidates = videoCandidatesInNode(node);
+  const permalink =
+    findAllByKey(node, 'url').find(
+      (u) => typeof u === 'string' && u.startsWith('https://') && u.includes('comment_id=')
+    ) || null;
+  const reactions = node.reactors?.count ?? findFirstByKey(node, 'unified_reactors')?.count;
+
+  return {
+    authorName: `${node.author?.name || ''} (💬)`,
+    text: node.preferred_body?.text || '',
+    postUrl: permalink,
+    postDate: node.created_time != null ? parseInt(node.created_time, 10) : null,
+    imageLinks: videoCandidates.length > 0 ? [] : extractImagesFromJson(node),
+    videoCandidates,
+    thumbnail: videoCandidates.length > 0 ? thumbnailInNode(node) : null,
+    likes: reactions != null ? humanFormat(reactions) : null,
+  };
+}
+
 const getBaseHeaders = () => ({
   Accept:
     "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
@@ -1658,7 +1735,27 @@ const scrapePost = async (url) => {
       const jsonBlocks = getJsonBlocks(html, true);
       const unsortedJsonBlocks = getJsonBlocks(html, false);
 
-      if (routed.kind === "reel") {
+      // null when the comment isn't server-rendered (deep replies, stale ids) —
+      // we then fall through and embed the parent post instead.
+      const commentData =
+        routed.kind === "comment"
+          ? parseCommentContent(jsonBlocks, commentIdIn(normalizedUrl))
+          : null;
+
+      if (commentData) {
+        result.authorName = commentData.authorName;
+        result.postDate = commentData.postDate;
+        result.likes = commentData.likes;
+        result.isReel = commentData.videoCandidates.length > 0;
+        result.postInfo.url = commentData.postUrl || result.postInfo.url;
+
+        setMessage(commentData.text, result.postInfo.url || url);
+        await addMediaDownloads([
+          ...(commentData.videoCandidates.length > 0 ? [commentData.videoCandidates] : []),
+          ...commentData.imageLinks,
+        ]);
+        structuredParsingSucceeded = true;
+      } else if (routed.kind === "reel") {
         const reelData = parseReelContent(unsortedJsonBlocks.length > 0 ? unsortedJsonBlocks : jsonBlocks);
 
         result.authorName = reelData.authorName;
@@ -1796,6 +1893,7 @@ const isFacebookUrl = (url) => {
     /https?:\/\/(www\.|m\.)?facebook\.com\/watch\/?\?v=\d+/,
     /https?:\/\/(www\.|m\.)?facebook\.com\/photo\/?\?fbid=\d+/,
     /https?:\/\/(www\.|m\.)?facebook\.com\/photo\.php\?/,
+    /https?:\/\/(www\.|m\.)?facebook\.com\/[^\s]*[?&]comment_id=\d+/,
     /https?:\/\/(www\.|m\.)?facebook\.com\/stories\/\d+\/[A-Za-z0-9=_-]+/,
     /https?:\/\/(www\.|m\.)?facebook\.com\/permalink\.php\?story_fbid=/,
     /https?:\/\/(www\.|m\.)?facebook\.com\/groups\/[^/]+\/permalink\/\d+/,
@@ -1855,6 +1953,8 @@ module.exports = {
   parseStoriesContent,
   parsePhotocomContent,
   parseSinglePhotoContent,
+  commentIdIn,
+  parseCommentContent,
   videoCandidatesInNode,
   videoLinkInNode,
   thumbnailInNode,
