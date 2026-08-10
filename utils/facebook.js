@@ -82,6 +82,48 @@ const detectPostType = (ogType) => {
   return 'unknown';
 };
 
+/// Query keys Facebook adds for sharing/attribution. facebed-rusty: url_clean.rs.
+const TRACKING_PARAMS = new Set([
+  "fs", "mibextid", "rdid", "share_url", "paipv", "_rdr", "eav", "refsrc",
+  "_ft_", "__tn__", "__cft__", "__xts__", "fref", "hc_ref", "hc_location",
+  "notif_id", "notif_t", "ref", "sfnsn", "wtsid",
+]);
+
+const cleanFacebookUrl = (rawUrl) => {
+  let url;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return rawUrl;
+  }
+  for (const key of [...url.searchParams.keys()]) {
+    if (TRACKING_PARAMS.has(key) || key.startsWith("__cft__") || key.startsWith("__xts__")) {
+      url.searchParams.delete(key);
+    }
+  }
+  return url.toString();
+};
+
+/// Mobile sometimes wraps the real post in ?share_url=<encoded>.
+const extractShareUrl = (rawUrl) => {
+  try {
+    const wrapped = new URL(rawUrl).searchParams.get("share_url");
+    if (wrapped && /^https?:\/\/(www\.|m\.)?facebook\.com\//.test(wrapped)) {
+      return cleanFacebookUrl(wrapped);
+    }
+  } catch {}
+  return null;
+};
+
+/// Group posts are the only place facebed trusts author markdown.
+const isGroupPostUrl = (rawUrl) => {
+  try {
+    return new URL(rawUrl).pathname.startsWith("/groups/");
+  } catch {
+    return false;
+  }
+};
+
 const parseGroupPostUrl = (url) => {
   if (!url) return null;
   
@@ -1388,16 +1430,19 @@ const scrapePost = async (url) => {
   try {
     session = createSession();
 
-    const directUrl = await getDirectUrl(url);
+    const requestUrl = extractShareUrl(url) || url;
+    const directUrl = await getDirectUrl(requestUrl);
     if (!directUrl) {
       result.error = "Could not resolve Facebook URL (cookies may be expired)";
       return result;
     }
 
-    let normalizedUrl = directUrl;
-    const videosMatch = directUrl.match(/\/([^/]+)\/videos\/(\d+)/);
+    const cleanedUrl = cleanFacebookUrl(directUrl);
+
+    let normalizedUrl = cleanedUrl;
+    const videosMatch = cleanedUrl.match(/\/([^/]+)\/videos\/(\d+)/);
     if (videosMatch) {
-      normalizedUrl = directUrl.replace(/\/[^/]+\/videos\/(\d+)/, "/reel/$1").replace(/\/[^/]+\/watch\/(\d+)/, "/videos/$1");
+      normalizedUrl = cleanedUrl.replace(/\/[^/]+\/videos\/(\d+)/, "/reel/$1").replace(/\/[^/]+\/watch\/(\d+)/, "/videos/$1");
       console.log("[Facebook] Converted /videos/ URL to /reel/ format");
     }
 
@@ -1581,6 +1626,9 @@ module.exports = {
   findFirstByKey,
   findAllByKey,
   hasKeys,
+  cleanFacebookUrl,
+  extractShareUrl,
+  isGroupPostUrl,
   videoCandidatesInNode,
   videoLinkInNode,
   thumbnailInNode,

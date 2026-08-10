@@ -142,3 +142,34 @@ test("parseReelContent gathers url, date and text from any block", () => {
   assert.strictEqual(reel.postDate, 1750000000);
   assert.strictEqual(reel.text, "reel caption");
 });
+
+const { cleanFacebookUrl, extractShareUrl } = require("../utils/facebook");
+
+test("cleanFacebookUrl strips tracking params and keeps real ones", () => {
+  const cleaned = cleanFacebookUrl(
+    "https://www.facebook.com/story.php?story_fbid=123&id=456&mibextid=wwXIfr&__cft__%5B0%5D=abc&paipv=0"
+  );
+  assert.ok(cleaned.includes("story_fbid=123"));
+  assert.ok(cleaned.includes("id=456"));
+  assert.ok(!cleaned.includes("mibextid"));
+  assert.ok(!cleaned.includes("__cft__"));
+  assert.ok(!cleaned.includes("paipv"));
+});
+
+test("cleanFacebookUrl returns input unchanged when unparseable", () => {
+  assert.strictEqual(cleanFacebookUrl("not a url"), "not a url");
+});
+
+test("extractShareUrl unwraps a facebook share_url and ignores foreign hosts", () => {
+  assert.strictEqual(
+    extractShareUrl(
+      "https://www.facebook.com/reel/123/?share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2Fr%2Fabc%2F"
+    ),
+    "https://www.facebook.com/share/r/abc/"
+  );
+  assert.strictEqual(
+    extractShareUrl("https://www.facebook.com/reel/123/?share_url=https%3A%2F%2Fevil.example%2Fx"),
+    null
+  );
+  assert.strictEqual(extractShareUrl("https://www.facebook.com/reel/123/"), null);
+});
