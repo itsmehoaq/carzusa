@@ -191,6 +191,64 @@ function findLastByKey(obj, key) {
   return results[results.length - 1];
 }
 
+const QUALITY_RANK = { HD: 0, SD: 1 };
+
+/// Every playable URL under `node`, best-quality-first. Mirrors facebed-rusty
+/// video_link_in_node (parsers/util.rs) but keeps ALL variants so an oversized
+/// HD file can fall back to SD instead of being dropped.
+const videoCandidatesInNode = (node) => {
+  const out = [];
+  const push = (url) => {
+    if (typeof url === "string" && /^https?:\/\//.test(url) && !out.includes(url)) {
+      out.push(url);
+    }
+  };
+
+  for (const fragment of findAllByKey(node, "videoDeliveryResponseFragment")) {
+    for (const list of findAllByKey(fragment, "progressive_urls")) {
+      if (!Array.isArray(list)) continue;
+      const ranked = [...list].sort(
+        (a, b) =>
+          (QUALITY_RANK[a?.metadata?.quality] ?? 2) - (QUALITY_RANK[b?.metadata?.quality] ?? 2)
+      );
+      for (const entry of ranked) push(entry?.progressive_url);
+    }
+  }
+
+  for (const legacy of findAllByKey(node, "videoDeliveryLegacyFields")) {
+    if (!legacy || typeof legacy !== "object") continue;
+    push(findFirstByKey(legacy, "browser_native_hd_url"));
+    push(findFirstByKey(legacy, "browser_native_sd_url"));
+  }
+
+  push(findFirstByKey(node, "playable_url_quality_hd"));
+  push(findFirstByKey(node, "playable_url"));
+
+  return out;
+};
+
+const videoLinkInNode = (node) => videoCandidatesInNode(node)[0] ?? null;
+
+/// Best-effort preview image for a video node.
+const thumbnailInNode = (node) => {
+  const paths = [
+    ["preferred_thumbnail", "image", "uri"],
+    ["thumbnailImage", "uri"],
+    ["image", "uri"],
+  ];
+  for (const path of paths) {
+    let cur = node;
+    for (const seg of path) cur = cur?.[seg];
+    if (typeof cur === "string" && cur) return cur;
+  }
+  for (const key of ["preferred_thumbnail", "thumbnailImage"]) {
+    const t = findFirstByKey(node, key);
+    const uri = t?.image?.uri || t?.uri;
+    if (typeof uri === "string" && uri) return uri;
+  }
+  return null;
+};
+
 function humanFormat(num) {
   if (num === null || num === undefined) return null;
   if (typeof num === 'number' || /^\d+$/.test(String(num))) {
@@ -386,18 +444,10 @@ function extractAuthorAndText(rootNode) {
           }
         }
 
-        try {
-          const videoNode = findFirstByKey(attachmentSet, 'videoDeliveryLegacyFields');
-          if (videoNode) {
-            for (const key of ['browser_native_hd_url', 'browser_native_sd_url']) {
-              const vUrl = findFirstByKey(videoNode, key);
-              if (vUrl && typeof vUrl === 'string' && vUrl.includes('fbcdn.net') && !vids.includes(vUrl)) {
-                vids.push(vUrl);
-                break;
-              }
-            }
-          }
-        } catch (e) {}
+        const candidates = videoCandidatesInNode(attachmentSet);
+        if (candidates.length > 0 && !vids.some((entry) => entry[0] === candidates[0])) {
+          vids.push(candidates);
+        }
       }
 
       if (imgs.length === 0) {
@@ -444,7 +494,7 @@ function extractAuthorAndText(rootNode) {
         if (!result.imageLinks.includes(img)) result.imageLinks.push(img);
       }
       for (const vid of sharedMedia.vids) {
-        if (!result.videoLinks.includes(vid)) result.videoLinks.push(vid);
+        if (!result.videoLinks.some((entry) => entry[0] === vid[0])) result.videoLinks.push(vid);
       }
     }
   } catch (e) {
@@ -780,21 +830,6 @@ const parseFeedImages = (html) => {
   return images;
 };
 
-const extractVideoFromJson = (node) => {
-  try {
-    const videoNode = findFirstByKey(node, 'videoDeliveryLegacyFields');
-    if (!videoNode) return null;
-    
-    for (const key of ['browser_native_hd_url', 'browser_native_sd_url']) {
-      const url = findFirstByKey(videoNode, key);
-      if (url && typeof url === 'string' && url.includes('fbcdn.net')) {
-        return url;
-      }
-    }
-  } catch (e) {}
-  return null;
-};
-
 const extractImagesFromJson = (postJson) => {
   const images = [];
   
@@ -860,117 +895,74 @@ const extractImagesFromJson = (postJson) => {
 
 const extractVideosFromJson = (postJson) => {
   const videos = [];
-  
-  try {
-    const allAttachments = findAllByKey(postJson, 'attachment');
-    
-    for (const attachmentSet of allAttachments) {
-      const link = extractVideoFromJson(attachmentSet);
-      if (link && !videos.includes(link)) {
-        videos.push(link);
-      }
+  for (const attachmentSet of findAllByKey(postJson, 'attachment')) {
+    const candidates = videoCandidatesInNode(attachmentSet);
+    if (candidates.length > 0 && !videos.some((entry) => entry[0] === candidates[0])) {
+      videos.push(candidates);
     }
-  } catch (e) {}
-  
+  }
   return videos;
 };
 
+const VIDEO_BLOCK_MARKERS = [
+  'browser_native_hd_url',
+  'browser_native_sd_url',
+  'progressive_url',
+  'video_view_count_renderer',
+  'comment_rendering_instance',
+  'i18n_reaction_count',
+  'comet_ufi_summary_and_actions_renderer',
+];
+
 const parseMediaFromJsonBlocks = (html) => {
   const result = { images: [], videos: [] };
-  
+
+  // Video entries are candidate lists (best quality first), not bare URLs.
+  const pushVideos = (parsed) => {
+    const add = (entry) => {
+      if (entry.length > 0 && !result.videos.some((existing) => existing[0] === entry[0])) {
+        result.videos.push(entry);
+      }
+    };
+    for (const entry of extractVideosFromJson(parsed)) add(entry);
+    add(videoCandidatesInNode(parsed));
+  };
+
   try {
     const blocks = getJsonBlocks(html, true);
-    
+
     for (const block of blocks) {
-      if (block.json.includes('i18n_reaction_count') || 
+      if (block.json.includes('i18n_reaction_count') ||
           block.json.includes('comet_ufi_summary_and_actions_renderer')) {
-        const parsed = block.parsed;
-        
-        const images = extractImagesFromJson(parsed);
+        const images = extractImagesFromJson(block.parsed);
         if (images.length > 0 && result.images.length === 0) {
           result.images.push(...images);
         }
-        
-        const videos = extractVideosFromJson(parsed);
-        if (videos.length > 0) {
-          for (const v of videos) {
-            if (!result.videos.includes(v)) {
-              result.videos.push(v);
-            }
-          }
-        }
       }
-      
-      if (block.json.includes('message_preferred_body') || 
+
+      if (block.json.includes('message_preferred_body') ||
           block.json.includes('container_story')) {
-        const images = extractImagesFromJson(block.parsed);
-        if (images.length > 0) {
-          for (const img of images) {
-            if (!result.images.includes(img)) {
-              result.images.push(img);
-            }
-          }
+        for (const img of extractImagesFromJson(block.parsed)) {
+          if (!result.images.includes(img)) result.images.push(img);
         }
       }
-      
-      if (block.json.includes('browser_native_hd_url') || 
-          block.json.includes('browser_native_sd_url')) {
-        const videoFields = findAllByKey(block.parsed, 'videoDeliveryLegacyFields');
-        for (const videoField of videoFields) {
-          for (const key of ['browser_native_hd_url', 'browser_native_sd_url']) {
-            if (videoField[key] && typeof videoField[key] === 'string' && 
-                videoField[key].includes('fbcdn.net') && !result.videos.includes(videoField[key])) {
-              result.videos.push(videoField[key]);
-              break;
-            }
-          }
-        }
-        
-        const videos = extractVideosFromJson(block.parsed);
-        for (const v of videos) {
-          if (!result.videos.includes(v)) {
-            result.videos.push(v);
-          }
-        }
-      }
-      
-      if (block.json.includes('video_view_count_renderer') || 
-          block.json.includes('comment_rendering_instance')) {
-        const videoFields = findAllByKey(block.parsed, 'videoDeliveryLegacyFields');
-        for (const videoField of videoFields) {
-          for (const key of ['browser_native_hd_url', 'browser_native_sd_url']) {
-            if (videoField[key] && typeof videoField[key] === 'string' && 
-                videoField[key].includes('fbcdn.net') && !result.videos.includes(videoField[key])) {
-              result.videos.push(videoField[key]);
-              break;
-            }
-          }
-        }
+
+      if (VIDEO_BLOCK_MARKERS.some((marker) => block.json.includes(marker))) {
+        pushVideos(block.parsed);
       }
     }
-    
+
     if (result.videos.length === 0) {
-      const unsortedBlocks = getJsonBlocks(html, false);
-      for (const block of unsortedBlocks) {
-        if (block.json.includes('browser_native_hd_url') || 
-            block.json.includes('browser_native_sd_url')) {
-          const videoFields = findAllByKey(block.parsed, 'videoDeliveryLegacyFields');
-          for (const videoField of videoFields) {
-            for (const key of ['browser_native_hd_url', 'browser_native_sd_url']) {
-              if (videoField[key] && typeof videoField[key] === 'string' && 
-                  videoField[key].includes('fbcdn.net') && !result.videos.includes(videoField[key])) {
-                result.videos.push(videoField[key]);
-                break;
-              }
-            }
-          }
+      for (const block of getJsonBlocks(html, false)) {
+        if (VIDEO_BLOCK_MARKERS.some((marker) => block.json.includes(marker))) {
+          pushVideos(block.parsed);
         }
       }
     }
   } catch (e) {
     console.log('[Facebook] Error parsing media from JSON blocks:', e.message);
   }
-  
+
   return result;
 };
 
@@ -1089,16 +1081,19 @@ const parseAttachments = async (html) => {
   const urlPattern =
     /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&\/=]*)/;
 
+  // Entries are either a URL string (images) or a candidate list (videos).
+  const firstUrl = (entry) => (Array.isArray(entry) ? entry[0] : entry);
+
   const jsonMedia = parseMediaFromJsonBlocks(html);
-  
+
   if (jsonMedia.videos.length > 0) {
-    for (const videoUrl of jsonMedia.videos) {
-      if (!attachments.includes(videoUrl)) {
-        attachments.push(videoUrl);
+    for (const videoEntry of jsonMedia.videos) {
+      if (!attachments.some((a) => firstUrl(a) === firstUrl(videoEntry))) {
+        attachments.push(videoEntry);
       }
     }
   }
-  
+
   if (jsonMedia.images.length > 0) {
     for (const imageUrl of jsonMedia.images) {
       if (!attachments.includes(imageUrl)) {
@@ -1118,9 +1113,10 @@ const parseAttachments = async (html) => {
   }
   
   if (attachments.length > 0) {
-    const videoCount = attachments.filter(url => 
-      url.includes('/v/') || url.includes('/o1/v/') || url.includes('.mp4')
-    ).length;
+    const videoCount = attachments.filter((entry) => {
+      const url = firstUrl(entry);
+      return url.includes('/v/') || url.includes('/o1/v/') || url.includes('.mp4');
+    }).length;
     const imageCount = attachments.length - videoCount;
     console.log(`[Facebook] Found ${videoCount} videos, ${imageCount} images`);
     return attachments.filter((url) => url !== null);
@@ -1173,10 +1169,7 @@ const parseAttachments = async (html) => {
     attachments.push(attString);
   }
 
-  const hasImages = attachments.some(url => {
-    const ext = url.match(/\.(png|webp|jpg|jpeg|gif)/i);
-    return ext !== null;
-  });
+  const hasImages = attachments.some((entry) => firstUrl(entry).match(/\.(png|webp|jpg|jpeg|gif)/i) !== null);
   
   if (!hasImages && !videoUrl) {
     const feedImages = parseFeedImages(html);
@@ -1188,7 +1181,7 @@ const parseAttachments = async (html) => {
   return attachments.filter((url) => url !== null);
 };
 
-const downloadMedia = async (url) => {
+const downloadOne = async (url) => {
   try {
     const imageMatch = url.match(/\.(png|webp|jpg|jpeg|gif)/i);
     const videoMatch = url.match(/\.(mp4|mov|webm)/i);
@@ -1225,6 +1218,23 @@ const downloadMedia = async (url) => {
   }
 };
 
+/// Try quality candidates in order; first one under MAX_FILE_SIZE wins.
+/// Accepts a bare URL (images) or an ordered candidate list (videos).
+/// ponytail: no HEAD pre-check — FB usually omits Content-Length, so the probe
+/// costs a round-trip and answers "unknown". Add one if download volume hurts.
+const downloadMedia = async (candidates) => {
+  const urls = (Array.isArray(candidates) ? candidates : [candidates]).filter(Boolean);
+  let oversized = null;
+  for (const url of urls) {
+    const result = await downloadOne(url);
+    if (!result) continue;
+    if (!result.tooLarge) return result;
+    oversized = result;
+    console.warn("[Facebook] Candidate over size limit, trying lower quality");
+  }
+  return oversized;
+};
+
 const escapeMarkdown = (text) => {
   if (!text) return "";
   const replacements = {
@@ -1258,11 +1268,18 @@ const scrapePost = async (url) => {
     isReel: false,
   };
 
-  const addMediaDownloads = async (mediaUrls) => {
-    const uniqueUrls = [...new Set(mediaUrls.filter(Boolean))];
-    if (uniqueUrls.length === 0) return;
+  const addMediaDownloads = async (mediaEntries) => {
+    const seen = new Set();
+    const entries = [];
+    for (const entry of mediaEntries) {
+      const urls = (Array.isArray(entry) ? entry : [entry]).filter(Boolean);
+      if (urls.length === 0 || seen.has(urls[0])) continue;
+      seen.add(urls[0]);
+      entries.push(urls);
+    }
+    if (entries.length === 0) return;
 
-    const downloads = await Promise.all(uniqueUrls.map((mediaUrl) => downloadMedia(mediaUrl)));
+    const downloads = await Promise.all(entries.map((entry) => downloadMedia(entry)));
     for (const download of downloads) {
       if (!download) continue;
       if (download.tooLarge) {
@@ -1485,4 +1502,7 @@ module.exports = {
   detectPostType,
   parseGroupPostUrl,
   extractGroupNameFromTitle,
+  videoCandidatesInNode,
+  videoLinkInNode,
+  thumbnailInNode,
 };
