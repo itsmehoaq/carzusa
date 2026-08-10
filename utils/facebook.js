@@ -147,6 +147,9 @@ const classifyFacebookUrl = (rawUrl) => {
   }
   const path = parsed.pathname;
 
+  if (parsed.searchParams.getAll("type").some((t) => t.includes("3"))) {
+    return { kind: "photocom", url: rawUrl };
+  }
   if (/^\/stories\/\d+\/[A-Za-z0-9=_-]+/.test(path)) return { kind: "stories", url: rawUrl };
 
   const bareVideo = path.match(/^\/videos\/(?:[^/]+\/)?(\d+)/);
@@ -935,6 +938,37 @@ function parseStoriesContent(jsonBlocks) {
   throw new Error('Story unavailable (expired or restricted)');
 }
 
+/// Image posted inside a comment (photo.php?...&type=3). Caption and image live
+/// under attached_comment / currMedia, not the normal photo keys.
+/// facebed-rusty: parsers/photocom.rs.
+function parsePhotocomContent(jsonBlocks) {
+  const contentBlock = jsonBlocks.find(
+    (b) => hasKeys(b.parsed, 'attached_comment') && !hasKeys(b.parsed, 'unified_reactors')
+  );
+  const data = contentBlock ? findFirstByKey(contentBlock.parsed, 'result')?.data : null;
+  if (!data) throw new Error('Cannot process photocom (cn)');
+
+  const mediaBlock = jsonBlocks.find((b) =>
+    hasKeys(b.parsed, 'attached_comment', 'unified_reactors')
+  );
+  const currMedia = mediaBlock ? findFirstByKey(mediaBlock.parsed, 'currMedia') : null;
+  const image = currMedia?.image?.uri;
+  if (!image) throw new Error('Cannot process photocom (iau)');
+
+  const reactions = mediaBlock
+    ? findFirstByKey(mediaBlock.parsed, 'unified_reactors')?.count
+    : null;
+
+  return {
+    authorName: `${data.owner?.name || ''} (💬)`,
+    text: data.attached_comment?.preferred_body?.text || '',
+    postUrl: currMedia?.attached_comment?.feedback?.url || null,
+    postDate: data.created_time != null ? parseInt(data.created_time, 10) : null,
+    imageLinks: [image],
+    likes: reactions != null ? humanFormat(reactions) : null,
+  };
+}
+
 const getBaseHeaders = () => ({
   Accept:
     "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
@@ -1614,6 +1648,17 @@ const scrapePost = async (url) => {
           watchData.videoCandidates.length > 0 ? [watchData.videoCandidates] : []
         );
         structuredParsingSucceeded = true;
+      } else if (routed.kind === "photocom") {
+        const photocom = parsePhotocomContent(jsonBlocks);
+
+        result.authorName = photocom.authorName;
+        result.postDate = photocom.postDate;
+        result.likes = photocom.likes;
+        result.postInfo.url = photocom.postUrl || result.postInfo.url;
+
+        setMessage(photocom.text, result.postInfo.url || url);
+        await addMediaDownloads(photocom.imageLinks);
+        structuredParsingSucceeded = true;
       } else if (routed.kind === "stories") {
         const storyData = parseStoriesContent(jsonBlocks);
 
@@ -1699,6 +1744,7 @@ const isFacebookUrl = (url) => {
     /https?:\/\/(www\.|m\.)?facebook\.com\/[^/]+\/posts\/(\d+|pfbid[a-zA-Z0-9]+)/,
     /https?:\/\/(www\.|m\.)?facebook\.com\/watch\/?\?v=\d+/,
     /https?:\/\/(www\.|m\.)?facebook\.com\/photo\/?\?fbid=\d+/,
+    /https?:\/\/(www\.|m\.)?facebook\.com\/photo\.php\?/,
     /https?:\/\/(www\.|m\.)?facebook\.com\/stories\/\d+\/[A-Za-z0-9=_-]+/,
     /https?:\/\/(www\.|m\.)?facebook\.com\/permalink\.php\?story_fbid=/,
     /https?:\/\/(www\.|m\.)?facebook\.com\/groups\/[^/]+\/permalink\/\d+/,
@@ -1756,6 +1802,7 @@ module.exports = {
   classifyFacebookUrl,
   parseWatchContent,
   parseStoriesContent,
+  parsePhotocomContent,
   videoCandidatesInNode,
   videoLinkInNode,
   thumbnailInNode,

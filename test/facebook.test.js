@@ -313,3 +313,43 @@ test("parseStoriesContent reads a photo story", () => {
 test("parseStoriesContent reports expired stories distinctly", () => {
   assert.throws(() => parseStoriesContent([block({ nothing: true })]), /expired or restricted/);
 });
+
+const { parsePhotocomContent } = require("../utils/facebook");
+
+test("parsePhotocomContent reads comment body, image and reaction count", () => {
+  const blocks = [
+    block({
+      attached_comment: {},
+      result: {
+        data: {
+          owner: { id: "55", name: "Comment Owner" },
+          created_time: 1750000000,
+          attached_comment: { preferred_body: { text: "look at this" } },
+        },
+      },
+    }),
+    block({
+      attached_comment: {},
+      unified_reactors: { count: 5 },
+      currMedia: {
+        image: { uri: "https://img.fbcdn.net/comment.jpg" },
+        attached_comment: { feedback: { url: "https://www.facebook.com/c" } },
+      },
+    }),
+  ];
+
+  const post = parsePhotocomContent(blocks);
+  assert.strictEqual(post.authorName, "Comment Owner (\u{1F4AC})");
+  assert.strictEqual(post.text, "look at this");
+  assert.deepStrictEqual(post.imageLinks, ["https://img.fbcdn.net/comment.jpg"]);
+  assert.strictEqual(post.postUrl, "https://www.facebook.com/c");
+  assert.strictEqual(post.likes, "5");
+  assert.strictEqual(post.postDate, 1750000000);
+});
+
+test("classifyFacebookUrl gives type=3 photos top priority", () => {
+  assert.strictEqual(
+    classifyFacebookUrl("https://www.facebook.com/photo.php?fbid=1&type=3").kind,
+    "photocom"
+  );
+});
