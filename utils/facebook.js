@@ -175,7 +175,10 @@ const findByKey = (obj, key, first = false) => {
       result.push(oo[key]);
     }
   }
-  return result;
+  // Miss on a first-only lookup must be undefined, not []. Returning [] made
+  // hasKeys() unconditionally true, so every block-selection check in this file
+  // silently accepted whichever block came first.
+  return first ? undefined : result;
 };
 
 const findAllByKey = (obj, key) => findByKey(obj, key, false);
@@ -541,57 +544,131 @@ function extractPostDate(rootNode) {
   return null;
 }
 
-function parseReelContent(jsonBlocks) {
-  let contentNode = null;
+/// Bug-1 fix: match creation_story on ANY modern video marker, not on the
+/// long-gone browser_native_sd_url. facebed-rusty: parsers/reels.rs.
+const findReelContentNode = (jsonBlocks) => {
   for (const block of jsonBlocks) {
-    if (hasKeys(block.parsed, 'browser_native_sd_url', 'creation_story')) {
-      contentNode = findFirstByKey(block.parsed, 'creation_story');
-      break;
-    }
-  }
-  if (!contentNode) throw new Error('Invalid reels link (cn)');
-
-  const videoId = contentNode.id;
-  const ownerInfo = contentNode.short_form_video_context?.video_owner;
-  if (!ownerInfo) throw new Error('Invalid reels link (owner)');
-
-  const isIg = ownerInfo.__typename?.startsWith('InstagramUser') || false;
-  const opName = (isIg ? '📷 @' : '') + (isIg ? ownerInfo.username : ownerInfo.name);
-  const postUrl = contentNode.short_form_video_context?.shareable_url || null;
-  const postDate = contentNode.creation_time || null;
-  const postText = contentNode.message ? contentNode.message.text || '' : '';
-
-  let videoLink = null;
-  for (const block of jsonBlocks) {
-    if (hasKeys(block.parsed, 'browser_native_hd_url') || hasKeys(block.parsed, 'browser_native_sd_url')) {
-      const videoNode = findFirstByKey(block.parsed, 'videoDeliveryLegacyFields');
-      if (videoNode) {
-        for (const key of ['browser_native_hd_url', 'browser_native_sd_url']) {
-          const vUrl = findFirstByKey(videoNode, key);
-          if (vUrl && typeof vUrl === 'string' && vUrl.includes('fbcdn.net')) {
-            videoLink = vUrl;
-            break;
-          }
-        }
-        if (videoLink) break;
+    for (const cs of findAllByKey(block.parsed, 'creation_story')) {
+      if (!cs || typeof cs !== 'object') continue;
+      if (
+        hasKeys(cs, 'short_form_video_context') ||
+        findFirstByKey(cs, 'videoDeliveryResponseFragment') !== undefined ||
+        findFirstByKey(cs, 'videoDeliveryLegacyFields') !== undefined ||
+        findFirstByKey(cs, 'playable_url') !== undefined
+      ) {
+        return cs;
       }
     }
   }
+  return null;
+};
+
+const ownerHasName = (owner) => typeof owner?.name === 'string' && owner.name.length > 0;
+
+const ownerFromNode = (node) => {
+  const ctxOwner = findFirstByKey(node, 'short_form_video_context')?.video_owner;
+  if (ownerHasName(ctxOwner)) return ctxOwner;
+  for (const key of ['video_owner', 'owner']) {
+    if (ownerHasName(node?.[key])) return node[key];
+  }
+  for (const key of ['video_owner', 'owner']) {
+    for (const owner of findAllByKey(node, key)) {
+      if (ownerHasName(owner)) return owner;
+    }
+  }
+  return null;
+};
+
+const blockMentionsId = (node, id) =>
+  !!id && findAllByKey(node, 'id').some((value) => String(value) === String(id));
+
+/// FB pages carry unrelated owner objects for sidebars and recommendations —
+/// prefer the one attached to the matched video.
+const findOwnerWithName = (jsonBlocks, contentNode, videoId) => {
+  const direct = ownerFromNode(contentNode);
+  if (direct) return direct;
+  if (videoId) {
+    for (const block of jsonBlocks) {
+      if (!blockMentionsId(block.parsed, videoId)) continue;
+      const owner = ownerFromNode(block.parsed);
+      if (owner) return owner;
+    }
+  }
+  for (const block of jsonBlocks) {
+    const owner = ownerFromNode(block.parsed);
+    if (owner) return owner;
+  }
+  return null;
+};
+
+const findShareableUrl = (jsonBlocks) => {
+  for (const block of jsonBlocks) {
+    for (const ctx of findAllByKey(block.parsed, 'short_form_video_context')) {
+      if (typeof ctx?.shareable_url === 'string' && ctx.shareable_url) return ctx.shareable_url;
+    }
+  }
+  return null;
+};
+
+const findCreationTime = (jsonBlocks) => {
+  for (const block of jsonBlocks) {
+    for (const ct of findAllByKey(block.parsed, 'creation_time')) {
+      const parsedTime = parseInt(ct, 10);
+      if (!Number.isNaN(parsedTime)) return parsedTime;
+    }
+  }
+  return null;
+};
+
+const findMessageText = (jsonBlocks) => {
+  for (const block of jsonBlocks) {
+    for (const msg of findAllByKey(block.parsed, 'message')) {
+      if (typeof msg?.text === 'string' && msg.text) return msg.text;
+    }
+  }
+  return '';
+};
+
+const findVideoCandidates = (jsonBlocks, contentNode) => {
+  const fromContent = videoCandidatesInNode(contentNode);
+  if (fromContent.length > 0) return fromContent;
+  for (const block of jsonBlocks) {
+    const candidates = videoCandidatesInNode(block.parsed);
+    if (candidates.length > 0) return candidates;
+  }
+  return [];
+};
+
+function parseReelContent(jsonBlocks) {
+  const contentNode = findReelContentNode(jsonBlocks);
+  if (!contentNode) throw new Error('Invalid reels link (cn)');
+
+  const videoId = contentNode.id;
+  const videoCandidates = findVideoCandidates(jsonBlocks, contentNode);
+  if (videoCandidates.length === 0) throw new Error('Invalid reels link (vn)');
+
+  const ownerInfo = findOwnerWithName(jsonBlocks, contentNode, videoId);
+  if (!ownerInfo) throw new Error('Invalid reels link (owner)');
+
+  const isIg = ownerInfo.__typename?.startsWith('InstagramUser') || false;
+  const opName = isIg && ownerInfo.username ? `📷 @${ownerInfo.username}` : ownerInfo.name;
+
+  const postUrl =
+    contentNode.short_form_video_context?.shareable_url || findShareableUrl(jsonBlocks) || null;
+  const postDate =
+    (contentNode.creation_time != null ? parseInt(contentNode.creation_time, 10) : null) ??
+    findCreationTime(jsonBlocks);
+  const postText = contentNode.message?.text || findMessageText(jsonBlocks);
 
   let likes = null;
   let comments = null;
   let shares = null;
 
   try {
-    const reactionBlocks = [];
-    for (const block of jsonBlocks) {
-      if (hasKeys(block.parsed, 'unified_reactors')) {
-        const allIds = findAllByKey(block.parsed, 'id');
-        if (allIds.some(id => String(id) === String(videoId))) {
-          reactionBlocks.push(block.parsed);
-        }
-      }
-    }
+    const reactionBlocks = jsonBlocks
+      .filter((block) => hasKeys(block.parsed, 'unified_reactors'))
+      .filter((block) => blockMentionsId(block.parsed, videoId))
+      .map((block) => block.parsed);
 
     if (reactionBlocks.length > 0) {
       const bloc = reactionBlocks[0];
@@ -611,13 +688,11 @@ function parseReelContent(jsonBlocks) {
         if (isIg && lastFb.cross_universe_feedback_info) {
           const igCmts = lastFb.cross_universe_feedback_info.ig_comment_count;
           if (igCmts != null) comments = humanFormat(igCmts);
-        } else {
-          const totalComments = lastFb.total_comment_count;
-          if (totalComments != null) comments = humanFormat(totalComments);
+        } else if (lastFb.total_comment_count != null) {
+          comments = humanFormat(lastFb.total_comment_count);
         }
 
-        const shareCount = lastFb.share_count_reduced;
-        if (shareCount != null) shares = humanFormat(shareCount);
+        if (lastFb.share_count_reduced != null) shares = humanFormat(lastFb.share_count_reduced);
       }
     }
   } catch (e) {
@@ -628,8 +703,9 @@ function parseReelContent(jsonBlocks) {
     authorName: opName,
     text: postText,
     postUrl,
-    postDate: postDate ? parseInt(postDate, 10) : null,
-    videoLink,
+    postDate: postDate ?? null,
+    videoCandidates,
+    thumbnail: thumbnailInNode(contentNode),
     likes,
     comments,
     shares,
@@ -1368,7 +1444,7 @@ const scrapePost = async (url) => {
         result.postInfo.url = reelData.postUrl || result.postInfo.url;
 
         setMessage(reelData.text, result.postInfo.url || url);
-        await addMediaDownloads(reelData.videoLink ? [reelData.videoLink] : []);
+        await addMediaDownloads(reelData.videoCandidates.length > 0 ? [reelData.videoCandidates] : []);
         structuredParsingSucceeded = true;
       } else if (isWatchUrl) {
         const watchData = parseWatchContent(jsonBlocks);
@@ -1502,7 +1578,14 @@ module.exports = {
   detectPostType,
   parseGroupPostUrl,
   extractGroupNameFromTitle,
+  findFirstByKey,
+  findAllByKey,
+  hasKeys,
   videoCandidatesInNode,
   videoLinkInNode,
   thumbnailInNode,
+  findReelContentNode,
+  ownerFromNode,
+  blockMentionsId,
+  parseReelContent,
 };

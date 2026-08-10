@@ -61,3 +61,84 @@ test("thumbnailInNode prefers preferred_thumbnail then falls back to nested scan
   );
   assert.strictEqual(thumbnailInNode({}), null);
 });
+
+const { findFirstByKey, hasKeys, findReelContentNode, ownerFromNode, parseReelContent } =
+  require("../utils/facebook");
+
+test("findFirstByKey misses as undefined so hasKeys can actually reject", () => {
+  assert.strictEqual(findFirstByKey({ a: 1 }, "missing"), undefined);
+  assert.strictEqual(findFirstByKey({ a: { b: 2 } }, "b"), 2);
+  assert.strictEqual(hasKeys({ a: 1 }, "a"), true);
+  assert.strictEqual(hasKeys({ a: 1 }, "a", "missing"), false);
+});
+
+const block = (parsed) => ({ json: JSON.stringify(parsed), parsed });
+
+test("findReelContentNode matches creation_story without browser_native_sd_url", () => {
+  const blocks = [
+    block({ unrelated: { creation_story: { id: "1" } } }),
+    block({
+      wrapper: {
+        creation_story: {
+          id: "42",
+          short_form_video_context: { video_owner: { name: "Creator" } },
+        },
+      },
+    }),
+  ];
+
+  assert.strictEqual(findReelContentNode(blocks).id, "42");
+});
+
+test("findReelContentNode also matches modern video-only creation_story", () => {
+  const blocks = [
+    block({
+      creation_story: {
+        id: "7",
+        videoDeliveryResponseFragment: {
+          videoDeliveryResponseResult: {
+            progressive_urls: [{ progressive_url: "https://video.fbcdn.net/r.mp4" }],
+          },
+        },
+      },
+    }),
+  ];
+
+  assert.strictEqual(findReelContentNode(blocks).id, "7");
+});
+
+test("ownerFromNode prefers short_form_video_context.video_owner", () => {
+  const node = {
+    short_form_video_context: { video_owner: { name: "Right" } },
+    owner: { name: "Wrong" },
+  };
+  assert.strictEqual(ownerFromNode(node).name, "Right");
+});
+
+test("parseReelContent gathers url, date and text from any block", () => {
+  const blocks = [
+    block({
+      creation_story: {
+        id: "42",
+        videoDeliveryResponseFragment: {
+          videoDeliveryResponseResult: {
+            progressive_urls: [
+              { progressive_url: "https://video.fbcdn.net/hd.mp4", metadata: { quality: "HD" } },
+            ],
+          },
+        },
+      },
+    }),
+    block({ short_form_video_context: { shareable_url: "https://www.facebook.com/reel/42" } }),
+    block({ creation_time: 1750000000 }),
+    block({ message: { text: "reel caption" } }),
+    block({ owner: { name: "Creator", id: "9" } }),
+  ];
+
+  const reel = parseReelContent(blocks);
+  assert.strictEqual(reel.authorName, "Creator");
+  assert.deepStrictEqual(reel.videoCandidates, ["https://video.fbcdn.net/hd.mp4"]);
+  assert.strictEqual(reel.postUrl, "https://www.facebook.com/reel/42");
+  assert.strictEqual(reel.postDate, 1750000000);
+  assert.strictEqual(reel.text, "reel caption");
+});
