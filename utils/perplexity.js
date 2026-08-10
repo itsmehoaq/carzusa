@@ -1,8 +1,14 @@
 const axios = require("axios");
 
-const PPLX_BASE_URL = process.env.PPLX_BASE_URL || "http://localhost:20128/api/v1";
-const PPLX_MODEL = process.env.PPLX_MODEL || "pplx-web/pplx-auto";
-const MAX_REPLY_CHARS = 400;
+const PPLX_BASE_URL =
+  process.env.PPLX_BASE_URL || "https://generativelanguage.googleapis.com/v1beta";
+const PPLX_MODEL = process.env.PPLX_MODEL || "models/gemma-4-31b-it";
+const MAX_REPLY_CHARS = 1024;
+
+const SYSTEM_INSTRUCTION =
+  "Answer search queries directly and concisely. Return ONLY the final answer. " +
+  "Maximum 255 characters. No analysis, reasoning, explanation, or greetings. " +
+  "Discord markdown is allowed. Prioritize current facts, dates, names, and numbers.";
 
 async function getAIReply(query) {
   const apiKey = process.env.PPLX_KEY;
@@ -17,17 +23,18 @@ async function getAIReply(query) {
 
   try {
     const response = await axios.post(
-      `${PPLX_BASE_URL}/chat/completions`,
+      `${PPLX_BASE_URL}/interactions`,
       {
         model: PPLX_MODEL,
-        messages: [
-          {
-            role: "user",
-            content: query,
-          },
-        ],
-        max_tokens: 100,
-        stream: false,
+        system_instruction: SYSTEM_INSTRUCTION,
+        input: query,
+        tools: [{ type: "google_search" }],
+        generation_config: {
+          temperature: 0.3,
+          max_output_tokens: 1024,
+          thinking_level: "high",
+          thinking_summaries: "none",
+        },
       },
       {
         headers: buildHeaders(apiKey),
@@ -36,18 +43,23 @@ async function getAIReply(query) {
     );
 
     const data = response.data;
-    const aiContent = truncateReply(data.choices?.[0]?.message?.content || "");
-    const searchResults = data.search_results || [];
+    const aiContent = truncateReply(extractModelOutput(data));
 
-    const citations = parseCitations(aiContent, searchResults);
+    if (!aiContent) {
+      return {
+        content: null,
+        citations: [],
+        error: `No model output (status: ${data?.status ?? "unknown"})`,
+      };
+    }
 
     return {
       content: aiContent,
-      citations,
+      citations: parseCitations(aiContent, extractSearchResults(data)),
       error: null,
     };
   } catch (error) {
-    console.error("Perplexity API error:", error.response?.data || error.message);
+    console.error("Google AI search error:", error.response?.data || error.message);
     return {
       content: null,
       citations: [],
@@ -57,13 +69,31 @@ async function getAIReply(query) {
 }
 
 function buildHeaders(apiKey) {
-  const headers = {
+  return {
     accept: "*/*",
     "Content-Type": "application/json",
-    Cookie: `auth_token=${apiKey}`,
+    "x-goog-api-key": apiKey,
   };
+}
 
-  return headers;
+/// The answer is the `model_output` step; every other step is thinking or the
+/// search tool call. Joins all text parts in case the model emits more than one.
+function extractModelOutput(data) {
+  const step = (data?.steps || []).find((s) => s.type === "model_output");
+  return (step?.content || [])
+    .filter((part) => part.type === "text" && typeof part.text === "string")
+    .map((part) => part.text)
+    .join("\n")
+    .trim();
+}
+
+/// google_search_result steps carry the grounding sources. Shape varies and is
+/// often empty, so anything without a url is dropped.
+function extractSearchResults(data) {
+  return (data?.steps || [])
+    .filter((s) => s.type === "google_search_result" && Array.isArray(s.result))
+    .flatMap((s) => s.result)
+    .filter((r) => r && typeof r.url === "string");
 }
 
 function truncateReply(content) {
@@ -127,4 +157,6 @@ module.exports = {
   getAIReply,
   parseCitations,
   formatContentWithCitations,
+  extractModelOutput,
+  extractSearchResults,
 };
