@@ -4,6 +4,15 @@ const reminder = require("../commands/reminder");
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction) {
+    if (interaction.isAutocomplete?.() && interaction.commandName === "reminder") {
+      try {
+        await reminder.autocomplete(interaction);
+      } catch (error) {
+        console.error("[Reminder] Autocomplete failed:", error);
+        if (!interaction.responded) await interaction.respond([]);
+      }
+      return;
+    }
     if (!interaction.isModalSubmit() || interaction.customId !== reminder.MODAL_ID) return;
 
     try {

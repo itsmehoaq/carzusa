@@ -9,7 +9,8 @@ const {
   TextInputBuilder,
   TextInputStyle,
 } = require("discord.js");
-const { INTERVALS, parseReminderTime, scheduler } = require("../utils/reminderScheduler");
+const moment = require("moment-timezone");
+const { INTERVALS, TIMEZONE, parseReminderTime, scheduler } = require("../utils/reminderScheduler");
 
 const MODAL_ID = "reminder:create";
 
@@ -28,9 +29,30 @@ module.exports = {
   MODAL_ID,
   data: new SlashCommandBuilder()
     .setName("reminder")
-    .setDescription("Create a reminder in this channel (UTC+7)"),
+    .setDescription("Manage your reminders")
+    .addSubcommand((command) => command
+      .setName("new")
+      .setDescription("Create a reminder in this channel (UTC+7)"))
+    .addSubcommand((command) => command
+      .setName("delete")
+      .setDescription("Delete one of your saved reminders")
+      .addStringOption((option) => option
+        .setName("reminder")
+        .setDescription("Choose the reminder to delete")
+        .setRequired(true)
+        .setAutocomplete(true))),
 
   async execute(interaction) {
+    if (interaction.options.getSubcommand() === "delete") {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const id = interaction.options.getString("reminder", true);
+      const deleted = scheduler.deleteReminder(id, interaction.user.id);
+      return interaction.editReply({
+        content: deleted ? "Reminder deleted." : "Reminder not found. Choose one of your saved reminders.",
+        allowedMentions: { parse: [] },
+      });
+    }
+
     if (!canSendReminders(interaction)) {
       return interaction.reply({
         content: "I need permission to send messages and embed links in this channel.",
@@ -72,6 +94,18 @@ module.exports = {
       );
 
     await interaction.showModal(modal);
+  },
+
+  async autocomplete(interaction) {
+    const query = interaction.options.getFocused().toLowerCase();
+    const reminders = scheduler.getReminders(interaction.user.id)
+      .filter((reminder) => `${reminder.note} ${reminder.interval} ${reminder.id}`.toLowerCase().includes(query))
+      .sort((a, b) => Date.parse(a.nextRunAt) - Date.parse(b.nextRunAt))
+      .slice(0, 25);
+    await interaction.respond(reminders.map((reminder) => ({
+      name: `${reminder.interval} | ${moment.tz(reminder.nextRunAt, TIMEZONE).format("YYYY-MM-DD HH:mm")} UTC+7 | ${reminder.note.replace(/\s+/g, " ")}`.slice(0, 100),
+      value: reminder.id,
+    })));
   },
 
   async handleModalSubmit(interaction) {

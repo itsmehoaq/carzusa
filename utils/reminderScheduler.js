@@ -116,6 +116,22 @@ class ReminderScheduler {
     return reminder;
   }
 
+  getReminders(userId) {
+    this.load();
+    return this.reminders.filter((reminder) => reminder.userId === userId);
+  }
+
+  deleteReminder(id, userId) {
+    this.load();
+    const reminder = this.reminders.find((item) => item.id === id && item.userId === userId);
+    if (!reminder) return false;
+    const reminders = this.reminders.filter((item) => item.id !== id);
+    this.save(reminders);
+    this.reminders = reminders;
+    this.retryAfter.delete(id);
+    return true;
+  }
+
   initScheduler(client) {
     if (this.timer) return;
     this.client = client;
@@ -149,6 +165,8 @@ class ReminderScheduler {
           if (!channel?.isSendable()) {
             throw new Error(`Channel ${reminder.channelId} is not sendable.`);
           }
+          // A reminder may have been deleted while the channel was being fetched.
+          if (!this.reminders.some((item) => item.id === reminder.id)) continue;
 
           nextRunAt = getNextRunAt(reminder.nextRunAt, reminder.interval, this.now());
           const embed = new EmbedBuilder()

@@ -45,6 +45,7 @@ function makeReminder(overrides = {}) {
 function makeInteraction(overrides = {}) {
   return {
     id: "interaction-1",
+    options: { getSubcommand: () => "new" },
     user: { id: "123" },
     channelId: "456",
     channel: { isSendable: () => true, isThread: () => false },
@@ -288,6 +289,91 @@ test("a failed post-delivery save is retried without sending again", async (t) =
   assert.equal(send.mock.callCount(), 1);
   assert.equal(scheduler.dirty, false);
   assert.deepEqual(JSON.parse(fs.readFileSync(scheduler.storagePath, "utf8")), []);
+});
+
+test("command exposes new and delete subcommands with required autocomplete", () => {
+  const data = reminderCommand.data.toJSON();
+  assert.deepEqual(data.options.map((option) => option.name), ["new", "delete"]);
+  assert.equal(data.options[1].options[0].required, true);
+  assert.equal(data.options[1].options[0].autocomplete, true);
+});
+
+test("deletion is owner-only and persists across restarts", (t) => {
+  const { scheduler } = makeScheduler(t);
+  scheduler.addReminder(makeReminder());
+  assert.deepEqual(scheduler.getReminders("other"), []);
+  assert.equal(scheduler.deleteReminder("reminder-1", "other"), false);
+  assert.equal(scheduler.deleteReminder("missing", "123"), false);
+  assert.equal(scheduler.getReminders("123").length, 1);
+  assert.equal(scheduler.deleteReminder("reminder-1", "123"), true);
+  const restarted = new ReminderScheduler({ storagePath: scheduler.storagePath });
+  assert.deepEqual(restarted.getReminders("123"), []);
+});
+
+test("failed deletion saves leave reminders intact", (t) => {
+  const { scheduler } = makeScheduler(t);
+  scheduler.addReminder(makeReminder());
+  t.mock.method(scheduler, "save", () => { throw new Error("Disk full"); });
+  assert.throws(() => scheduler.deleteReminder("reminder-1", "123"), /Disk full/);
+  assert.equal(scheduler.getReminders("123").length, 1);
+});
+
+test("deleting a reminder during channel fetch prevents delivery", async (t) => {
+  const { scheduler, send } = makeScheduler(t);
+  scheduler.addReminder(makeReminder());
+  scheduler.client.channels.fetch = async () => {
+    scheduler.deleteReminder("reminder-1", "123");
+    return { isSendable: () => true, send };
+  };
+  await scheduler.processDueReminders();
+  assert.equal(send.mock.callCount(), 0);
+});
+
+test("delete command privately deletes the selected reminder without send permissions", async (t) => {
+  const remove = t.mock.method(sharedScheduler, "deleteReminder", () => true);
+  const interaction = makeInteraction({
+    channel: null,
+    options: { getSubcommand: () => "delete", getString: () => "reminder-1" },
+  });
+  await reminderCommand.execute(interaction);
+  assert.deepEqual(remove.mock.calls[0].arguments, ["reminder-1", "123"]);
+  assert.equal(interaction.deferReply.mock.calls[0].arguments[0].flags, MessageFlags.Ephemeral);
+  assert.equal(interaction.editReply.mock.calls[0].arguments[0].content, "Reminder deleted.");
+});
+
+test("delete command handles missing reminders", async (t) => {
+  t.mock.method(sharedScheduler, "deleteReminder", () => false);
+  const interaction = makeInteraction({
+    options: { getSubcommand: () => "delete", getString: () => "missing" },
+  });
+  await reminderCommand.execute(interaction);
+  assert.match(interaction.editReply.mock.calls[0].arguments[0].content, /not found/);
+});
+
+test("autocomplete filters saved reminders and limits results to 25", async (t) => {
+  const list = t.mock.method(sharedScheduler, "getReminders", () => Array.from({ length: 30 }, (_, index) =>
+    makeReminder({ id: `id-${index}`, note: "Matching note ".repeat(20) })));
+  const interaction = {
+    user: { id: "123" },
+    options: { getFocused: () => "MATCHING" },
+    respond: mock.fn(async () => {}),
+  };
+  await reminderCommand.autocomplete(interaction);
+  const choices = interaction.respond.mock.calls[0].arguments[0];
+  assert.deepEqual(list.mock.calls[0].arguments, ["123"]);
+  assert.equal(choices.length, 25);
+  assert.ok(choices.every((choice) => choice.name.length <= 100));
+  assert.match(choices[0].name, /2026-11-03 10:20 UTC\+7/);
+  interaction.options.getFocused = () => "no match";
+  await reminderCommand.autocomplete(interaction);
+  assert.deepEqual(interaction.respond.mock.calls[1].arguments[0], []);
+});
+
+test("autocomplete events route to the reminder command", async (t) => {
+  const autocomplete = t.mock.method(reminderCommand, "autocomplete", async () => {});
+  const interaction = { isAutocomplete: () => true, commandName: "reminder" };
+  await reminderSubmit.execute(interaction);
+  assert.equal(autocomplete.mock.calls[0].arguments[0], interaction);
 });
 
 test("corrupt storage is not silently overwritten by a new reminder", (t) => {
