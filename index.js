@@ -46,6 +46,7 @@ for (const file of eventFiles) {
 }
 
 const gasScheduler = require("./utils/gasScheduler");
+const { scheduler: reminderScheduler } = require("./utils/reminderScheduler");
 
 client.once(Events.ClientReady, (c) => {
   console.log(`Logged in as ${c.user.tag}`);
@@ -55,6 +56,7 @@ client.once(Events.ClientReady, (c) => {
   
   // Initialize automated gas price scheduler
   gasScheduler.initScheduler(c);
+  reminderScheduler.initScheduler(c);
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
