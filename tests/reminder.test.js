@@ -140,7 +140,7 @@ test("thread permissions and bot DMs are supported", async () => {
   assert.equal(dm.showModal.mock.callCount(), 1);
 });
 
-test("modal submission persists the reminder and privately confirms UTC+7 time", async (t) => {
+test("modal submission persists the reminder and confirms timestamps inside the embed", async (t) => {
   const add = t.mock.method(sharedScheduler, "addReminder", (reminder) => reminder);
   const interaction = makeInteraction();
   await reminderCommand.handleModalSubmit(interaction);
@@ -150,7 +150,9 @@ test("modal submission persists the reminder and privately confirms UTC+7 time",
     note: "Remember this", nextRunAt: "2099-12-01T11:30:00.000Z",
   });
   const confirmation = interaction.editReply.mock.calls[0].arguments[0];
-  assert.equal(confirmation.embeds[0].toJSON().fields[0].value, "2099-12-01 18:30");
+  const unixTime = Math.floor(Date.parse("2099-12-01T11:30:00.000Z") / 1000);
+  assert.doesNotMatch(confirmation.content, /<t:/);
+  assert.equal(confirmation.embeds[0].toJSON().fields[0].value, `<t:${unixTime}:F> (<t:${unixTime}:R>)`);
   assert.deepEqual(confirmation.allowedMentions, { parse: [] });
 });
 
@@ -197,8 +199,12 @@ test("reminders survive restart, use idempotent IDs and deliver overdue one-offs
   await restarted.processDueReminders();
   assert.equal(send.mock.callCount(), 1);
   const payload = send.mock.calls[0].arguments[0];
+  const embed = payload.embeds[0].toJSON();
   assert.equal(payload.content, "<@123>");
-  assert.equal(payload.embeds[0].toJSON().description, makeReminder().note);
+  assert.equal(embed.description, makeReminder().note);
+  assert.equal(embed.footer.text, "Interval: once");
+  assert.doesNotMatch(JSON.stringify(embed), /UTC\+7/);
+  assert.ok(!embed.fields?.some((field) => field.name === "Next Reminder"));
   assert.deepEqual(payload.allowedMentions, { parse: [], users: ["123"] });
   assert.deepEqual(JSON.parse(fs.readFileSync(scheduler.storagePath, "utf8")), []);
 });
@@ -213,7 +219,27 @@ test("future reminders wait and recurring reminders advance without flooding", a
   await scheduler.processDueReminders();
   assert.equal(send.mock.callCount(), 1);
   assert.equal(scheduler.reminders[0].nextRunAt, "2026-11-03T08:00:00.000Z");
+  const unixTime = Math.floor(Date.parse(scheduler.reminders[0].nextRunAt) / 1000);
+  assert.deepEqual(send.mock.calls[0].arguments[0].embeds[0].toJSON().fields, [
+    { name: "Next Reminder", value: `<t:${unixTime}:R>` },
+  ]);
   assert.equal(JSON.parse(fs.readFileSync(scheduler.storagePath, "utf8"))[0].nextRunAt, "2026-11-03T08:00:00.000Z");
+});
+
+test("hourly, daily and weekly embeds show the persisted next run as a relative timestamp", async (t) => {
+  for (const [interval, hours] of [["hourly", 1], ["daily", 24], ["weekly", 168]]) {
+    const { scheduler, send } = makeScheduler(t);
+    scheduler.addReminder(makeReminder({ interval }));
+    await scheduler.processDueReminders();
+
+    const nextRunAt = new Date(NOW + hours * 60 * 60 * 1000).toISOString();
+    const unixTime = Math.floor(Date.parse(nextRunAt) / 1000);
+    const embed = send.mock.calls[0].arguments[0].embeds[0].toJSON();
+    assert.equal(embed.footer.text, `Interval: ${interval}`);
+    assert.doesNotMatch(JSON.stringify(embed), /UTC\+7/);
+    assert.deepEqual(embed.fields, [{ name: "Next Reminder", value: `<t:${unixTime}:R>` }]);
+    assert.equal(JSON.parse(fs.readFileSync(scheduler.storagePath, "utf8"))[0].nextRunAt, nextRunAt);
+  }
 });
 
 test("overlapping polls do not duplicate deliveries or lose newly created reminders", async (t) => {

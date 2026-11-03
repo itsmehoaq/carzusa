@@ -9,8 +9,7 @@ const {
   TextInputBuilder,
   TextInputStyle,
 } = require("discord.js");
-const moment = require("moment-timezone");
-const { INTERVALS, TIMEZONE, parseReminderTime, scheduler } = require("../utils/reminderScheduler");
+const { INTERVALS, parseReminderTime, scheduler } = require("../utils/reminderScheduler");
 
 const MODAL_ID = "reminder:create";
 
@@ -106,13 +105,13 @@ module.exports = {
 
     const unixTime = Math.floor(Date.parse(nextRunAt) / 1000);
     await interaction.editReply({
-      content: `Reminder set in <#${interaction.channelId}> for <t:${unixTime}:F> (<t:${unixTime}:R>).`,
+      content: `Reminder set in <#${interaction.channelId}>.`,
       embeds: [new EmbedBuilder()
         .setColor("#57F287")
         .setTitle("Reminder Scheduled")
         .setDescription(note)
         .addFields(
-          { name: "Time (UTC+7)", value: moment.tz(nextRunAt, TIMEZONE).format("YYYY-MM-DD HH:mm"), inline: true },
+          { name: "Time", value: `<t:${unixTime}:F> (<t:${unixTime}:R>)`, inline: true },
           { name: "Interval", value: interval, inline: true },
         )],
       allowedMentions: { parse: [] },

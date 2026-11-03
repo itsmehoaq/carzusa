@@ -143,19 +143,28 @@ class ReminderScheduler {
       );
 
       for (const reminder of due) {
+        let nextRunAt;
         try {
           const channel = await this.client.channels.fetch(reminder.channelId);
           if (!channel?.isSendable()) {
             throw new Error(`Channel ${reminder.channelId} is not sendable.`);
           }
 
+          nextRunAt = getNextRunAt(reminder.nextRunAt, reminder.interval, this.now());
+          const embed = new EmbedBuilder()
+            .setColor("#57F287")
+            .setTitle("Reminder")
+            .setDescription(reminder.note)
+            .setFooter({ text: `Interval: ${reminder.interval}` });
+
+          if (nextRunAt) {
+            const unixTime = Math.floor(Date.parse(nextRunAt) / 1000);
+            embed.addFields({ name: "Next Reminder", value: `<t:${unixTime}:R>` });
+          }
+
           await channel.send({
             content: `<@${reminder.userId}>`,
-            embeds: [new EmbedBuilder()
-              .setColor("#57F287")
-              .setTitle("Reminder")
-              .setDescription(reminder.note)
-              .setFooter({ text: `Interval: ${reminder.interval} | UTC+7` })],
+            embeds: [embed],
             allowedMentions: { parse: [], users: [reminder.userId] },
           });
         } catch (error) {
@@ -165,7 +174,6 @@ class ReminderScheduler {
         }
 
         this.retryAfter.delete(reminder.id);
-        const nextRunAt = getNextRunAt(reminder.nextRunAt, reminder.interval, this.now());
         this.reminders = nextRunAt
           ? this.reminders.map((item) => item.id === reminder.id ? { ...item, nextRunAt } : item)
           : this.reminders.filter((item) => item.id !== reminder.id);
