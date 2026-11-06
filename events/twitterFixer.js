@@ -1,5 +1,5 @@
 const { Events, EmbedBuilder } = require("discord.js");
-const supabase = require("../utils/supabase");
+const db = require("../utils/db");
 
 module.exports = {
   name: Events.MessageCreate,
@@ -72,73 +72,60 @@ module.exports = {
         return;
       }
 
-      const { data: existingRecord } = await supabase
-        .from("twitter_reposts")
-        .select("*")
-        .eq("guild_id", guildId)
-        .eq("tweet_key", uniqueKey)
-        .single();
-
-      if (existingRecord) {
-        const newCount = existingRecord.count + 1;
-
-        supabase
-          .from("twitter_reposts")
-          .update({ count: newCount })
-          .eq("id", existingRecord.id)
-          .then(() => {});
-
-        if (userId === process.env.OWNER) {
-          await sendFixMessage();
-          return;
-        }
-
-        const originalUser = `<@${existingRecord.first_user_id}>`;
-
-        const embed = new EmbedBuilder()
-          .setColor("#FFCC00")
-          .setTitle("Repost detected")
-          .setDescription(`Repost count: **${newCount}**`)
-          .addFields({
-            name: "First Posted By",
-            value: originalUser,
-            inline: true,
-          });
-
-        if (
-          existingRecord.first_channel_id &&
-          existingRecord.first_message_id
-        ) {
-          const jumpUrl = `https://discord.com/channels/${guildId}/${existingRecord.first_channel_id}/${existingRecord.first_message_id}`;
-          embed.addFields({
-            name: "Original Message",
-            value: `[Jump to message](${jumpUrl})`,
-            inline: true,
-          });
-        }
-
-        try {
-          await message.suppressEmbeds(true);
-        } catch (e) {}
-
-        await message.reply({
-          embeds: [embed],
-          allowedMentions: { repliedUser: true },
-        });
-      } else {
-        await supabase.from("twitter_reposts").insert([
-          {
-            guild_id: guildId,
-            tweet_key: uniqueKey,
-            first_user_id: userId,
-            first_channel_id: channelId,
-            first_message_id: messageId,
-            count: 1,
-          },
-        ]);
-
+      const { rows, error } = await db.query(
+        `INSERT INTO twitter_reposts
+          (guild_id, tweet_key, first_user_id, first_channel_id, first_message_id, count)
+         VALUES ($1, $2, $3, $4, $5, 1)
+         ON CONFLICT (guild_id, tweet_key)
+         DO UPDATE SET count = twitter_reposts.count + 1, updated_at = NOW()
+         RETURNING id, guild_id, tweet_key, first_user_id, first_channel_id,
+                   first_message_id, count, (xmax = 0) AS is_first_post`,
+        [guildId, uniqueKey, userId, channelId, messageId],
+      );
+      const record = rows[0];
+      if (error || !record || record.is_first_post) {
+        if (error) console.error("Twitter repost database error:", error.message);
         await sendFixMessage();
+        return;
       }
+
+      if (userId === process.env.OWNER) {
+        await sendFixMessage();
+        return;
+      }
+
+      const originalUser = `<@${record.first_user_id}>`;
+
+      const embed = new EmbedBuilder()
+        .setColor("#FFCC00")
+        .setTitle("Repost detected")
+        .setDescription(`Repost count: **${record.count}**`)
+        .addFields({
+          name: "First Posted By",
+          value: originalUser,
+          inline: true,
+        });
+
+      if (
+        record.first_channel_id &&
+        record.first_message_id
+      ) {
+        const jumpUrl = `https://discord.com/channels/${guildId}/${record.first_channel_id}/${record.first_message_id}`;
+        embed.addFields({
+          name: "Original Message",
+          value: `[Jump to message](${jumpUrl})`,
+          inline: true,
+        });
+      }
+
+      try {
+        await message.suppressEmbeds(true);
+      } catch (e) {}
+
+      await message.reply({
+        embeds: [embed],
+        allowedMentions: { repliedUser: true },
+      });
     }
   },
 };
