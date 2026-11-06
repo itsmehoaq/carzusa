@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "node --test",
+    "test": "node --require ./tests/helpers/offline.cjs --test",
     "dev": "cross-env DEV_MODE=true node index.js",
     "deploy": "node utils/deploy-commands.js",
     "deploy:dev": "cross-env DEV_MODE=true node utils/deploy-commands.js",
