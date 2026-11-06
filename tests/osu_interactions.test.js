@@ -1,0 +1,285 @@
+const assert = require("node:assert/strict");
+const { EventEmitter } = require("node:events");
+const { test, mock } = require("node:test");
+const { MessageFlags, EmbedBuilder } = require("discord.js");
+const api = require("../utils/osu/osuClient");
+const db = require("../utils/osu/osuDb");
+const { resolveTarget } = require("../utils/osu/osuTargetResolver");
+const { paginate } = require("../utils/osu/paginationHelper");
+const { parseResourceId } = require("../utils/osu/commandHandlers");
+const embeds = require("../utils/osu/embeds");
+const osu = require("../commands/osu");
+
+const user = {
+  id: 42, username: "Player", country_code: "VN", avatar_url: "https://a.ppy.sh/42",
+  join_date: "2020-01-01T00:00:00Z", statistics: { pp: 5000, global_rank: 1000, country_rank: 10, hit_accuracy: 98.5, play_count: 100, level: { current: 100, progress: 25 } },
+};
+const map = {
+  id: 12, cs: 4, ar: 9, accuracy: 8, drain: 6, bpm: 180, total_length: 123, difficulty_rating: 5.1, version: "Insane",
+  beatmapset: { id: 10, artist: "Artist", title: "Song", creator: "Mapper", covers: { cover: "https://assets.ppy.sh/cover.jpg" } },
+};
+const play = {
+  id: 1, total_score: 123456, accuracy: 98.76, max_combo: 400, mods: ["HD"], rank: "A", pp: null,
+  statistics: { great: 100, ok: 10, miss: 2 }, beatmap: map, failed: false, ended_at: "2026-01-01T00:00:00Z",
+};
+const tick = () => new Promise((resolve) => setImmediate(resolve));
+
+function interaction(command = "profile", values = {}) {
+  let deferred = false;
+  const collector = new EventEmitter();
+  const createCollector = mock.fn(() => collector);
+  const get = (name) => {
+    assert.equal(deferred, true, `Option ${name} read before deferral finished`);
+    return values[name] ?? null;
+  };
+  return {
+    user: { id: "123" },
+    options: {
+      getSubcommand: () => { assert.equal(deferred, true); return command; },
+      getString: get, getInteger: get, getBoolean: get, getNumber: get,
+    },
+    deferReply: mock.fn(async () => { await tick(); deferred = true; }),
+    editReply: mock.fn(async () => ({ createMessageComponentCollector: createCollector })),
+    collector, createCollector,
+    assertDeferred: () => assert.equal(deferred, true),
+  };
+}
+
+function mockServices(t, check = () => {}) {
+  const guarded = (value) => async () => { check(); return structuredClone(value); };
+  t.mock.method(api, "getUser", guarded(user));
+  t.mock.method(api, "getUserRecentScores", guarded([play]));
+  t.mock.method(api, "getUserTopScores", guarded([play]));
+  t.mock.method(api, "getBeatmap", guarded(map));
+  t.mock.method(api, "getMatch", guarded({ match: { id: 1, name: "A vs B" }, users: [], events: [] }));
+  t.mock.method(db, "getLinkedUser", guarded({ osu_id: 42, default_mode: "osu" }));
+  t.mock.method(db, "linkUser", guarded({ osu_id: 42 }));
+  t.mock.method(db, "unlinkUser", guarded(true));
+}
+
+test("every osu subcommand and alias awaits deferral before option reads or I/O", async (t) => {
+  let current;
+  mockServices(t, () => current.assertDeferred());
+  const values = { username: "Player", pp: 250, beatmap_id_or_url: "12", match_id_or_url: "1" };
+  for (const name of ["profile", "recent", "top", "map", "whatif", "bws", "matchcost", "link", "unlink"]) {
+    current = interaction(name, values);
+    await osu.execute(current);
+    assert.equal(current.deferReply.mock.callCount(), 1, name);
+    assert.ok(current.editReply.mock.callCount() > 0, name);
+    const payload = current.editReply.mock.calls[0].arguments[0];
+    for (const embed of payload.embeds || []) assert.doesNotThrow(() => embed.toJSON(), name);
+    if (!["link", "unlink"].includes(name)) assert.ok(payload.embeds?.length, `${name} failed: ${JSON.stringify(payload)}`);
+  }
+  for (const name of ["rs", "top", "mc"]) {
+    current = interaction("unused", values);
+    await require(`../commands/${name}`).execute(current);
+    assert.equal(current.deferReply.mock.callCount(), 1, name);
+    assert.ok(current.editReply.mock.calls[0].arguments[0].embeds?.length, name);
+  }
+});
+
+test("alias execution equals its osu subcommand execution", async (t) => {
+  mockServices(t);
+  for (const [alias, name] of [["rs", "recent"], ["top", "top"], ["mc", "matchcost"]]) {
+    const values = { username: "Player", match_id_or_url: "1" };
+    const normal = interaction(name, values);
+    const aliased = interaction("unused", values);
+    await osu.execute(normal);
+    await require(`../commands/${alias}`).execute(aliased);
+    const serialize = (i) => JSON.parse(JSON.stringify(i.editReply.mock.calls[0].arguments[0]));
+    assert.deepEqual(serialize(normal), serialize(aliased));
+  }
+});
+
+test("target precedence: explicit username/ID, mention link, invoking user's link; mode precedence", async (t) => {
+  const lookup = t.mock.method(db, "getLinkedUser", async (id) => id === "999"
+    ? { osu_id: 99, default_mode: "mania" } : { osu_id: 42, default_mode: "taiko" });
+  const i = { user: { id: "123" } };
+  assert.deepEqual(await resolveTarget(i, " explicit ", "osu"), { target: "explicit", mode: "osu" });
+  assert.deepEqual(await resolveTarget(i, "456"), { target: "456", mode: "taiko" });
+  assert.deepEqual(await resolveTarget(i, "<@!999>"), { target: 99, mode: "mania" });
+  assert.equal(lookup.mock.calls.at(-1).arguments[0], "999");
+  assert.deepEqual(await resolveTarget(i, "<@999>", "fruits"), { target: 99, mode: "fruits" });
+  assert.deepEqual(await resolveTarget(i), { target: 42, mode: "taiko" });
+  lookup.mock.mockImplementation(async () => null);
+  assert.deepEqual(await resolveTarget(i, "name"), { target: "name", mode: "osu" });
+  await assert.rejects(resolveTarget(i, "<@999>"), /no linked/);
+  await assert.rejects(resolveTarget(i), /Provide an osu! username/);
+});
+
+test("recent defaults to include failures, respects false, and starts at a 1-based index", async (t) => {
+  mockServices(t);
+  api.getUserRecentScores.mock.mockImplementation(async () => [play, { ...play, id: 2 }]);
+  const i = interaction("recent", { username: "Player", index: 2 });
+  await osu.execute(i);
+  assert.deepEqual(api.getUserRecentScores.mock.calls[0].arguments, [42, "osu", true]);
+  assert.equal(i.editReply.mock.calls[0].arguments[0].embeds[0].toJSON().url, "https://osu.ppy.sh/scores/2");
+  const filtered = interaction("recent", { username: "Player", include_fails: false });
+  await osu.execute(filtered);
+  assert.deepEqual(api.getUserRecentScores.mock.calls[1].arguments, [42, "osu", false]);
+  const invalid = interaction("recent", { username: "Player", index: 3 });
+  await osu.execute(invalid);
+  assert.match(invalid.editReply.mock.calls[0].arguments[0].content, /between 1 and 2/);
+});
+
+test("empty lists, missing targets, missing API config, and 404s produce deferred user feedback", async (t) => {
+  mockServices(t);
+  api.getUserTopScores.mock.mockImplementation(async () => []);
+  const empty = interaction("top", { username: "Player" });
+  await osu.execute(empty);
+  assert.match(empty.editReply.mock.calls[0].arguments[0].content, /No top scores/);
+  db.getLinkedUser.mock.mockImplementation(async () => null);
+  const missing = interaction("profile");
+  await osu.execute(missing);
+  assert.match(missing.editReply.mock.calls[0].arguments[0].content, /link your account/);
+  for (const [error, pattern] of [
+    [new Error("osu! API is not configured (OSU_CLIENT_ID and OSU_CLIENT_SECRET)."), /not configured/],
+    [Object.assign(new Error("HTTP 404"), { response: { status: 404 } }), /not found/],
+    [Object.assign(new Error("HTTP 503"), { response: { status: 503 } }), /unavailable/],
+  ]) {
+    api.getUser.mock.mockImplementation(async () => { throw error; });
+    const i = interaction("profile", { username: "Player" });
+    await osu.execute(i);
+    assert.match(i.editReply.mock.calls[0].arguments[0].content, pattern);
+  }
+});
+
+test("link writes only the invoking user's link, with resolved username and chosen default mode", async (t) => {
+  mockServices(t);
+  const i = interaction("link", { username: "Original", mode: "mania" });
+  await osu.execute(i);
+  assert.deepEqual(api.getUser.mock.calls[0].arguments, ["Original", "mania"]);
+  assert.deepEqual(db.linkUser.mock.calls[0].arguments, ["123", 42, "Player", "mania"]);
+  db.linkUser.mock.mockImplementation(async () => null);
+  const failed = interaction("link", { username: "Original" });
+  await osu.execute(failed);
+  assert.match(failed.editReply.mock.calls[0].arguments[0].content, /Could not save/);
+  db.unlinkUser.mock.mockImplementation(async () => false);
+  const unlink = interaction("unlink");
+  await osu.execute(unlink);
+  assert.match(unlink.editReply.mock.calls[0].arguments[0].content, /Could not remove/);
+  assert.deepEqual(db.unlinkUser.mock.calls[0].arguments, ["123"]);
+});
+
+test("pagination rejects other users, authorizes the author, clamps pages and disables controls on timeout", async () => {
+  const i = interaction();
+  const pages = [new EmbedBuilder().setTitle("One"), new EmbedBuilder().setTitle("Two")];
+  await paginate(i, pages);
+  assert.deepEqual(i.createCollector.mock.calls[0].arguments[0], { componentType: 2, time: 120_000 });
+  const stranger = { user: { id: "other" }, customId: "osu:next", reply: mock.fn(async () => {}), update: mock.fn() };
+  i.collector.emit("collect", stranger);
+  await tick();
+  assert.equal(stranger.reply.mock.calls[0].arguments[0].flags, MessageFlags.Ephemeral);
+  assert.equal(stranger.update.mock.callCount(), 0);
+  const owner = { user: i.user, customId: "osu:next", update: mock.fn(async () => {}) };
+  i.collector.emit("collect", owner);
+  await tick();
+  const update = owner.update.mock.calls[0].arguments[0];
+  assert.equal(update.embeds[0].toJSON().title, "Two");
+  assert.equal(update.components[0].toJSON().components[1].disabled, true);
+  i.collector.emit("collect", owner);
+  await tick();
+  assert.equal(owner.update.mock.calls[1].arguments[0].embeds[0].toJSON().title, "Two");
+  owner.customId = "osu:prev";
+  i.collector.emit("collect", owner);
+  await tick();
+  assert.equal(owner.update.mock.calls[2].arguments[0].embeds[0].toJSON().title, "One");
+  i.collector.emit("end");
+  await tick();
+  const disabled = i.editReply.mock.calls.at(-1).arguments[0].components[0].toJSON().components;
+  assert.ok(disabled.every((button) => button.disabled));
+});
+
+test("single-page pagination avoids a collector; deleted replies do not cause unhandled cleanup rejections", async () => {
+  const single = interaction();
+  await paginate(single, [new EmbedBuilder().setTitle("One")]);
+  assert.equal(single.createCollector.mock.callCount(), 0);
+  const multiple = interaction();
+  await paginate(multiple, [new EmbedBuilder().setTitle("One"), new EmbedBuilder().setTitle("Two")]);
+  multiple.editReply.mock.mockImplementation(async () => { throw new Error("Unknown Message"); });
+  multiple.collector.emit("end");
+  await tick();
+});
+
+test("timeout cleanup waits for a pending button update and leaves both controls disabled", async () => {
+  const i = interaction();
+  await paginate(i, [new EmbedBuilder().setTitle("One"), new EmbedBuilder().setTitle("Two")]);
+  let release;
+  const owner = { user: i.user, customId: "osu:next", update: mock.fn(() => new Promise((resolve) => { release = resolve; })) };
+  i.collector.emit("collect", owner);
+  await tick();
+  i.collector.emit("end");
+  await tick();
+  assert.equal(i.editReply.mock.callCount(), 1);
+  release();
+  await tick();
+  assert.ok(i.editReply.mock.calls.at(-1).arguments[0].components[0].toJSON().components.every((button) => button.disabled));
+});
+
+test("failed score map enrichment computes completion without scaling normalized accuracy twice", async (t) => {
+  mockServices(t);
+  api.getUserRecentScores.mock.mockImplementation(async () => [{ ...play, failed: true, passed: false, completion: null, accuracy: 0.5, beatmap: { id: 12 } }]);
+  api.getBeatmap.mock.mockImplementation(async () => ({ ...map, count_circles: 224 }));
+  const i = interaction("recent", { username: "Player" });
+  await osu.execute(i);
+  const fields = i.editReply.mock.calls[0].arguments[0].embeds[0].toJSON().fields;
+  assert.equal(fields.find((field) => field.name === "Accuracy").value, "0.50%");
+  assert.equal(fields.find((field) => field.name === "Failed").value, "50.00% completion");
+});
+
+test("recent pagination enriches failed plays on every page and reuses beatmap counts", async (t) => {
+  mockServices(t);
+  api.getUserRecentScores.mock.mockImplementation(async () => [
+    play,
+    { ...play, id: 2, failed: true, passed: false, completion: null, beatmap: { id: 12 } },
+    { ...play, id: 3, failed: true, passed: false, completion: null, beatmap: { id: 13 } },
+    { ...play, id: 4, failed: true, passed: false, completion: null, beatmap: { id: 12 }, statistics: { great: 166, miss: 2 } },
+    { ...play, id: 5, failed: true, passed: false, completion: 80, beatmap: { id: 14 } },
+  ]);
+  api.getBeatmap.mock.mockImplementation(async (id) => ({ ...map, id, count_circles: id === 13 ? 448 : 224 }));
+  const i = interaction("recent", { username: "Player", index: 2 });
+  await osu.execute(i);
+  const completion = (payload) => payload.embeds[0].toJSON().fields.find((field) => field.name === "Failed")?.value;
+  assert.equal(completion(i.editReply.mock.calls[0].arguments[0]), "50.00% completion");
+  const owner = { user: i.user, customId: "osu:next", update: mock.fn(async () => {}) };
+  for (const expected of ["25.00% completion", "75.00% completion", "80.00% completion"]) {
+    i.collector.emit("collect", owner);
+    await tick();
+    assert.equal(completion(owner.update.mock.calls.at(-1).arguments[0]), expected);
+  }
+  owner.customId = "osu:prev";
+  for (const expected of ["75.00% completion", "25.00% completion", "50.00% completion", undefined]) {
+    i.collector.emit("collect", owner);
+    await tick();
+    assert.equal(completion(owner.update.mock.calls.at(-1).arguments[0]), expected);
+  }
+  assert.deepEqual(api.getBeatmap.mock.calls.map((call) => call.arguments[0]).sort(), [12, 13]);
+});
+
+test("score embeds link unified score IDs and fall back to the beatmap for unsubmitted plays", () => {
+  const score = api.normalizeScore({ ...play, id: 12345, legacy_score_id: 678, accuracy: 0.9876 });
+  assert.equal(embeds.scoreEmbed(score, user).toJSON().url, "https://osu.ppy.sh/scores/12345");
+  const failed = api.normalizeScore({ ...play, id: null, passed: false, legacy_score_id: null });
+  assert.equal(embeds.scoreEmbed(failed, user).toJSON().url, "https://osu.ppy.sh/beatmaps/12");
+});
+
+test("resource parsing supports raw IDs and official difficulty/match URLs, rejecting ambiguous or foreign links", () => {
+  for (const input of ["12", "https://osu.ppy.sh/beatmaps/12", "https://osu.ppy.sh/b/12", "https://osu.ppy.sh/beatmapsets/10#osu/12"]) assert.equal(parseResourceId(input, "beatmap"), "12");
+  for (const input of ["1", "https://osu.ppy.sh/community/matches/1", "https://osu.ppy.sh/mp/1"]) assert.equal(parseResourceId(input, "match"), "1");
+  for (const input of ["0", "-1", "abc", "https://evil.example/beatmaps/12", "https://osu.ppy.sh/beatmapsets/10", "https://osu.ppy.sh/beatmaps/12junk"]) assert.throws(() => parseResourceId(input, "beatmap"), /valid beatmap/);
+});
+
+test("embeds expose raw attributes, failed completion, null PP, weighted estimate, and match MVP", () => {
+  const score = embeds.scoreEmbed({ ...play, failed: true, completion: 50 }, user).toJSON();
+  assert.equal(score.fields.find((field) => field.name === "Performance").value, "— pp");
+  assert.equal(score.fields.find((field) => field.name === "Failed").value, "50.00% completion");
+  const beatmap = embeds.beatmapEmbed(map).toJSON();
+  assert.match(beatmap.description, /Raw map attributes/);
+  assert.equal(beatmap.fields.find((field) => field.name === "CS / AR / OD / HP").value, "4.0 / 9.0 / 8.0 / 6.0");
+  const whatIf = embeds.whatIfEmbed(user, { placement: null, weightedDifference: 0, projectedWeightedPP: 4000, estimatedTotalPP: 5000 }, 0).toJSON();
+  assert.equal(whatIf.fields.find((field) => field.name === "Estimated total PP").value, "5,000.00 pp");
+  assert.match(whatIf.footer.text, /Estimate/);
+  const match = embeds.matchCostEmbed({ id: 1, name: "A vs B", gamesPlayed: 3, players: [{ username: "A", matchCost: 2.58, gamesPlayed: 3 }], teamVs: true, teamScore: { red: 2, blue: 1 }, truncated: true }).toJSON();
+  assert.match(match.description, /MVP/);
+  assert.match(match.fields.find((field) => field.name === "Incomplete history").value, /500-event/);
+});
