@@ -10,16 +10,175 @@ function date(value) {
   const timestamp = Date.parse(value);
   return Number.isFinite(timestamp) ? `<t:${Math.floor(timestamp / 1000)}:f>` : "—";
 }
+function timeAgo(dateInput) {
+  if (!dateInput) return "";
+  let timestamp;
+  if (dateInput instanceof Date) {
+    timestamp = dateInput.getTime();
+  } else if (typeof dateInput === "number") {
+    timestamp = dateInput;
+  } else {
+    timestamp = Date.parse(dateInput);
+  }
+  if (!Number.isFinite(timestamp)) return "";
+  const diffMs = Date.now() - timestamp;
+  if (diffMs < 0) return "just now";
+  const seconds = Math.floor(diffMs / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  if (days < 365) {
+    const months = Math.max(1, Math.floor(days / 30));
+    return `${months}mo ago`;
+  }
+  const years = Math.floor(days / 365);
+  return `${years}y ago`;
+}
+
+function normalizeRulesetId(mode) {
+  if (typeof mode === "number" && Number.isInteger(mode) && mode >= 0 && mode <= 3) {
+    return mode;
+  }
+  const str = String(mode ?? "").toLowerCase().trim();
+  switch (str) {
+    case "0":
+    case "osu":
+    case "standard":
+      return 0;
+    case "1":
+    case "taiko":
+      return 1;
+    case "2":
+    case "fruits":
+    case "catch":
+    case "ctb":
+      return 2;
+    case "3":
+    case "mania":
+      return 3;
+    default:
+      return 0;
+  }
+}
+
+function getScoreBreakdown(score = {}, mode) {
+  const stats = score?.statistics || {};
+  const ruleset = normalizeRulesetId(mode ?? score?.ruleset_id ?? score?.mode_int ?? score?.mode);
+  const c300 = Number(stats.count_300 ?? stats.great ?? 0) || 0;
+  const c100 = Number(stats.count_100 ?? stats.ok ?? 0) || 0;
+  const c50 = Number(stats.count_50 ?? stats.meh ?? 0) || 0;
+  const cmiss = Number(stats.count_miss ?? stats.miss ?? 0) || 0;
+  const cgeki = Number(stats.count_geki ?? stats.perfect ?? 0) || 0;
+  const ckatu = Number(stats.count_katu ?? stats.good ?? 0) || 0;
+
+  if (ruleset === 1) {
+    return `[${c300}/${c100}/${cmiss}]`;
+  }
+  if (ruleset === 3) {
+    return `[${cgeki}/${c300}/${ckatu}/${c100}/${c50}/${cmiss}]`;
+  }
+  return `[${c300}/${c100}/${c50}/${cmiss}]`;
+}
+
+function formatMods(mods) {
+  if (!mods) return "";
+  const arr = Array.isArray(mods)
+    ? mods.map((m) => (typeof m === "string" ? m : m?.acronym)).filter(Boolean)
+    : [];
+  if (!arr.length) return "";
+  const joined = arr.join("");
+  if (!joined || joined.toUpperCase() === "NM") return "";
+  return `+${joined}`;
+}
+
 function profileBase(user, mode) {
   const embed = base().setTitle(`${safe(user.username)} • ${mode}`)
     .setURL(`https://osu.ppy.sh/users/${user.id}/${mode}`);
-  if (user.avatar_url) embed.setThumbnail(new URL(user.avatar_url, "https://osu.ppy.sh").href);
+  if (user.avatar_url) {
+    try {
+      embed.setThumbnail(new URL(user.avatar_url, "https://osu.ppy.sh").href);
+    } catch {
+      embed.setThumbnail(user.avatar_url);
+    }
+  }
   return embed;
 }
 
 function profileEmbed(user, mode = "osu") {
   const stats = user.statistics || {};
-  return profileBase(user, mode).addFields(
+  const rulesetId = normalizeRulesetId(mode);
+  const modeDisplay = { 0: "osu!standard", 1: "osu!taiko", 2: "osu!catch", 3: "osu!mania" }[rulesetId] || "osu!standard";
+  const modeSlug = ["osu", "taiko", "fruits", "mania"][rulesetId] || "osu";
+  const profileUrl = user.id ? `https://osu.ppy.sh/users/${user.id}/${modeSlug}` : undefined;
+
+  const rawCountry = user.country_code || user.country?.code || (typeof user.country === "string" ? user.country : null);
+  const countryCode = typeof rawCountry === "string" ? rawCountry.toUpperCase() : null;
+  const flagIcon = countryCode && /^[A-Z]{2}$/.test(countryCode)
+    ? `https://osu.ppy.sh/images/flags/${countryCode}.png`
+    : undefined;
+
+  const embed = base();
+  const authorOpts = {
+    name: `${modeDisplay} Profile for ${safe(user.username)}`,
+  };
+  if (profileUrl) authorOpts.url = profileUrl;
+  if (flagIcon) authorOpts.iconURL = flagIcon;
+  embed.setAuthor(authorOpts);
+
+  if (profileUrl) embed.setURL(profileUrl);
+
+  if (user.avatar_url) {
+    try {
+      embed.setThumbnail(new URL(user.avatar_url, "https://osu.ppy.sh").href);
+    } catch {
+      embed.setThumbnail(user.avatar_url);
+    }
+  }
+
+  const hasCountryRank = Number.isFinite(Number(stats.country_rank)) && stats.country_rank !== null;
+  const countryRankStr = countryCode
+    ? (hasCountryRank ? ` (${countryCode}#${number(stats.country_rank)})` : ` (${countryCode})`)
+    : "";
+
+  const descLines = [];
+  descLines.push(`▸ **osu! Rank:** #${number(stats.global_rank)}${countryRankStr}`);
+
+  if (stats.level) {
+    descLines.push(`▸ **Level:** ${number(stats.level.current)} + ${number(stats.level.progress)}%`);
+  }
+
+  descLines.push(`▸ **PP:** ${number(stats.pp, 2)} **Acc:** ${number(stats.hit_accuracy, 2)}%`);
+
+  const secondsPlayed = Number(stats.play_time ?? stats.total_seconds_played ?? user.total_seconds_played);
+  let hoursPlayedStr = "";
+  if (Number.isFinite(secondsPlayed) && secondsPlayed > 0) {
+    const hours = Math.round(secondsPlayed / 3600);
+    hoursPlayedStr = ` (${number(hours)} hrs)`;
+  }
+  descLines.push(`▸ **Playcount:** ${number(stats.play_count)}${hoursPlayedStr}`);
+
+  if (stats.grade_counts && typeof stats.grade_counts === "object") {
+    const grades = [
+      ["SSH", stats.grade_counts.ssh ?? stats.grade_counts.SSH ?? 0],
+      ["SS", stats.grade_counts.ss ?? stats.grade_counts.SS ?? 0],
+      ["SH", stats.grade_counts.sh ?? stats.grade_counts.SH ?? 0],
+      ["S", stats.grade_counts.s ?? stats.grade_counts.S ?? 0],
+      ["A", stats.grade_counts.a ?? stats.grade_counts.A ?? 0],
+    ];
+    const totalGrades = grades.reduce((acc, [, val]) => acc + (Number(val) || 0), 0);
+    if (totalGrades > 0) {
+      const gradeStr = grades.map(([name, val]) => `**${name}** \`${number(val)}\``).join(" ");
+      descLines.push(`▸ **Ranks:** ${gradeStr}`);
+    }
+  }
+
+  embed.setDescription(descLines.join("\n"));
+
+  embed.addFields(
     field("Global rank", `#${number(stats.global_rank)}`),
     field(`${user.country_code || "Country"} rank`, `#${number(stats.country_rank)}`),
     field("Performance", pp(stats.pp)),
@@ -28,26 +187,90 @@ function profileEmbed(user, mode = "osu") {
     field("Level", `${number(stats.level?.current)} (${number(stats.level?.progress)}%)`),
     field("Joined", date(user.join_date)),
   );
+
+  return embed;
 }
 
 function scoreEmbed(score, user, { mode = "osu", kind = "Recent", index = 0, total = 1 } = {}) {
   const map = score.beatmap || {};
   const set = score.beatmapset || map.beatmapset || {};
-  const embed = base().setTitle(safe(`${set.artist || "Unknown artist"} - ${set.title || "Unknown map"} [${map.version || "?"}]`))
-    .setDescription(`${safe(user.username)} • ${kind} #${index + 1} • ${mode}\nMapped by ${safe(set.creator || map.user?.username)}`)
-    .addFields(
-      field("Score", number(score.total_score)),
-      field("Combo", `${number(score.max_combo)}x${map.max_combo ? ` / ${number(map.max_combo)}x` : ""}`),
-      field("Accuracy", `${number(score.accuracy, 2)}%`),
-      field("Mods", score.mods?.length ? `+${score.mods.join("")}` : "NM"),
-      field("Grade", score.rank || "—"), field("Performance", pp(score.pp)),
-      field("Hits", Object.entries(score.statistics || {}).map(([key, value]) => `${key.replace(/^count_/, "")}: ${number(value)}`).join(" • ") || "—", false),
-      field("Played", date(score.ended_at || score.created_at), false),
-    ).setFooter({ text: `Play ${index + 1} of ${total}` });
-  if (score.id) embed.setURL(`https://osu.ppy.sh/scores/${score.id}`);
-  else if (map.id) embed.setURL(`https://osu.ppy.sh/beatmaps/${map.id}`);
-  if (score.failed) embed.addFields(field("Failed", `${number(score.completion, 2)}% completion`));
-  if (set.covers?.cover) embed.setImage(set.covers.cover);
+  const rulesetId = normalizeRulesetId(mode ?? score.ruleset_id ?? score.mode_int ?? score.mode);
+
+  const titleText = `${set.artist || "Unknown artist"} - ${set.title || "Unknown map"} [${map.version || "?"}]`;
+  const mapper = safe(set.creator || map.user?.username || "Unknown");
+
+  const formattedMods = formatMods(score.mods);
+  const modSegment = formattedMods ? ` ${formattedMods}` : "";
+  const starStr = Number.isFinite(Number(map.difficulty_rating)) && map.difficulty_rating !== null
+    ? ` [${number(map.difficulty_rating, 2)}★]`
+    : "";
+
+  const targetUrl = score.id
+    ? `https://osu.ppy.sh/scores/${score.id}`
+    : (map.id ? `https://osu.ppy.sh/beatmaps/${map.id}` : undefined);
+
+  const embed = base().setTitle(safe(titleText));
+  if (targetUrl) embed.setURL(targetUrl);
+
+  const authorOpts = {
+    name: `${safe(titleText)}${modSegment}${starStr}`,
+  };
+  if (targetUrl) authorOpts.url = targetUrl;
+  if (user?.avatar_url) {
+    try {
+      authorOpts.iconURL = new URL(user.avatar_url, "https://osu.ppy.sh").href;
+    } catch {
+      authorOpts.iconURL = user.avatar_url;
+    }
+  }
+  embed.setAuthor(authorOpts);
+
+  const thumbnail = set.covers?.list || set.covers?.cover;
+  if (thumbnail) {
+    try {
+      embed.setThumbnail(new URL(thumbnail, "https://osu.ppy.sh").href);
+    } catch {
+      embed.setThumbnail(thumbnail);
+    }
+  }
+
+  const grade = score.rank || "—";
+  const ppText = pp(score.pp);
+  const breakdown = getScoreBreakdown(score, rulesetId);
+  const maxComboStr = Number.isFinite(Number(map.max_combo)) && Number(map.max_combo) > 0
+    ? `/${number(map.max_combo)}`
+    : "";
+
+  const descLines = [
+    `▸ **${kind} #${index + 1}** • Mapped by ${mapper}`,
+    `▸ **${grade}** ▸ ${ppText} ▸ ${number(score.accuracy, 2)}%`,
+    `▸ ${number(score.total_score)} ▸ x${number(score.max_combo)}${maxComboStr} ▸ ${breakdown}`,
+  ];
+
+  if (score.failed && score.completion !== null && score.completion !== undefined) {
+    descLines.push(`▸ **Map Completion:** ${number(score.completion, 2)}%`);
+  }
+
+  embed.setDescription(descLines.join("\n"));
+
+  embed.addFields(
+    field("Score", number(score.total_score)),
+    field("Combo", `${number(score.max_combo)}x${map.max_combo ? ` / ${number(map.max_combo)}x` : ""}`),
+    field("Accuracy", `${number(score.accuracy, 2)}%`),
+    field("Mods", score.mods?.length ? `+${score.mods.join("")}` : "NM"),
+    field("Grade", score.rank || "—"),
+    field("Performance", pp(score.pp)),
+    field("Hits", Object.entries(score.statistics || {}).map(([key, value]) => `${key.replace(/^count_/, "")}: ${number(value)}`).join(" • ") || "—", false),
+    field("Played", date(score.ended_at || score.created_at), false),
+  );
+
+  if (score.failed) {
+    embed.addFields(field("Failed", `${number(score.completion, 2)}% completion`));
+  }
+
+  const ago = timeAgo(score.ended_at || score.created_at);
+  embed.setFooter({ text: `Play ${index + 1} of ${total}${ago ? ` • ${ago}` : ""}` });
+
   return embed;
 }
 
@@ -152,5 +375,22 @@ function scorepostEmbed(score, user, title) {
   return embed.setDescription(`\`\`\`\n${codeTitle}\n\`\`\`\n[Score](https://osu.ppy.sh/scores/${score.id})`);
 }
 
-module.exports = { profileEmbed, scoreEmbed, beatmapEmbed, bwsEmbed, whatIfEmbed, matchCostEmbed,
-  avatarEmbed, pinnedEmbed, mostPlayedEmbed, checkNameEmbed, badgeEmbed, reachEmbed, scorepostEmbed };
+module.exports = {
+  timeAgo,
+  normalizeRulesetId,
+  getScoreBreakdown,
+  formatMods,
+  profileEmbed,
+  scoreEmbed,
+  beatmapEmbed,
+  bwsEmbed,
+  whatIfEmbed,
+  matchCostEmbed,
+  avatarEmbed,
+  pinnedEmbed,
+  mostPlayedEmbed,
+  checkNameEmbed,
+  badgeEmbed,
+  reachEmbed,
+  scorepostEmbed,
+};
