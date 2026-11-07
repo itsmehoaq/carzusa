@@ -277,3 +277,88 @@ test("osuPrefix event executes commands end-to-end and replies without ping", as
   await osuPrefixEvent.execute(botMessage);
   assert.equal(botReplied, false);
 });
+
+test("Category A prefix aliases select the correct shared handlers and rulesets", () => {
+  const groups = {
+    avatar: ["avatar", "av", "pfp"], pinned: ["pinned", "pin", "p"], mostplayed: ["mostplayed", "mp"],
+    checkname: ["checkname", "cn", "namecheck", "claimname"], badge: ["badge", "badges", "badgelist"],
+    reach: ["reach"], rank: ["rank"], pp: ["pp"], scorepost: ["scorepost", "post"],
+  };
+  for (const [command, aliases] of Object.entries(groups)) {
+    for (const alias of aliases) assert.equal(parsePrefixCommand(`>${alias}`).command, command);
+  }
+  for (const [prefix, mode] of [["t", "taiko"], ["c", "fruits"], ["m", "mania"]]) {
+    for (const [suffix, command] of [["pin", "pinned"], ["reach", "reach"], ["rank", "rank"], ["pp", "pp"]]) {
+      const parsed = parsePrefixCommand(`>${prefix}${suffix}`);
+      assert.equal(parsed.command, command);
+      assert.equal(parsed.options.mode, mode);
+    }
+  }
+});
+
+test("new prefix options preserve names, score resources, pagination and solver inputs", () => {
+  assert.deepEqual(parsePrefixCommand('>av "A B" -m mania').options, { username: "A B", mode: "mania" });
+  assert.equal(parsePrefixCommand(">avatar 12345").options.username, "12345");
+  assert.deepEqual(parsePrefixCommand(">tpin peppy 2").options, { username: "peppy", mode: "taiko", index: 2 });
+  assert.deepEqual(parsePrefixCommand(">mp peppy --page 2").options, { username: "peppy", mode: null, page: 2 });
+  assert.deepEqual(parsePrefixCommand(">badges peppy -p 3").options, { username: "peppy", mode: null, page: 3 });
+  assert.deepEqual(parsePrefixCommand(">cn 12345").options, { query: "12345" });
+  assert.deepEqual(parsePrefixCommand('>cn "bad  name"').options, { query: "bad  name" });
+  assert.deepEqual(parsePrefixCommand('>cn "name "').options, { query: "name " });
+  const url = "https://osu.ppy.sh/scores/mania/123";
+  assert.deepEqual(parsePrefixCommand(`>post ${url}`).options, { score_id_or_url: url });
+  assert.deepEqual(parsePrefixCommand('>treach mrekk "Player Name" --plays 3').options, {
+    target_user: "mrekk", username: "Player Name", mode: "taiko", plays: 3, each: null,
+  });
+  assert.deepEqual(parsePrefixCommand(">crank VN#51 peppy --each 400.5").options, {
+    rank: "VN#51", username: "peppy", mode: "fruits", plays: null, each: 400.5,
+  });
+  assert.deepEqual(parsePrefixCommand(">pp 6000 peppy mania -plays 2 -each 100").options, {
+    target_pp: 6000, username: "peppy", mode: "mania", plays: 2, each: 100,
+  });
+});
+
+test("reach prefix takes the target player first and defaults the subject to the linked account", () => {
+  assert.deepEqual(parsePrefixCommand(">reach targetPlayer").options, {
+    target_user: "targetPlayer", username: null, mode: null, plays: null, each: null,
+  });
+  assert.deepEqual(parsePrefixCommand(">reach mrekk WhiteCat").options, {
+    target_user: "mrekk", username: "WhiteCat", mode: null, plays: null, each: null,
+  });
+});
+
+test("prefix page and index flags accept only positive integer tokens", () => {
+  for (const command of ["mp", "badges", "recent", "top", "pinned"]) {
+    for (const flag of ["--page", "-p", "--index", "-i", "-page", "-index"]) {
+      for (const invalid of ["1.5", "1junk", "0", "-1", "01", "1e2", "Infinity", ""]) {
+        assert.equal(parsePrefixCommand(`>${command} peppy ${flag} ${invalid}`), null, `${command} ${flag} ${invalid}`);
+      }
+      const parsed = parsePrefixCommand(`>${command} peppy ${flag} 2`);
+      assert.equal(parsed.options.username, "peppy");
+      assert.equal(parsed.options[["mp", "badges"].includes(command) ? "page" : "index"], 2);
+    }
+  }
+});
+
+test("new prefix commands execute through shared handlers and malformed solver numbers are rejected", async (t) => {
+  t.mock.method(api, "getUser", async (target) => target === "targetPlayer"
+    ? { ...sampleUser, id: 99, username: "targetPlayer", statistics: { pp: 6000 } } : sampleUser);
+  t.mock.method(api, "getUserTopScores", async () => [samplePlay]);
+  t.mock.method(api, "getPerformanceRankings", async () => ({ ranking: Array(50).fill({ pp: 6000 }) }));
+  t.mock.method(db, "getLinkedUser", async () => ({ osu_id: 42, default_mode: "osu" }));
+  for (const [content, pattern, hasEmbed] of [
+    [">av", /Player/, true], [">mreach targetPlayer --plays 2", /Required plays/, true],
+    [">rank VN51 --each 1000", /Target PP/, true], [">pp 6000 --plays 1 --each 1000", /Specify either/, false],
+    [">reach targetPlayer --plays 1.5", /Plays must be an integer/, false],
+    [">reach targetPlayer --plays 1e21", /Plays must be an integer/, false],
+    [">pp nope", /valid target_pp/, false], [">reach targetPlayer --each nope", /valid each/, false],
+  ]) {
+    let reply;
+    const message = {
+      content, author: { id: "123", bot: false }, channel: { sendTyping: async () => {} },
+      reply: async (value) => { reply = value; return { createMessageComponentCollector: () => new EventEmitter() }; },
+    };
+    await osuPrefixEvent.execute(message);
+    assert.match(hasEmbed ? JSON.stringify(reply.embeds) : reply.content, pattern, content);
+  }
+});

@@ -133,3 +133,114 @@ test("raw match adapter skips unfinished games, accepts mixed mod representation
   assert.equal(result.truncated, true);
   assert.deepEqual(result.teamScore, { red: 1, blue: 0 });
 });
+
+const { calculateReach, calculateForFixedPlays, calculateForFixedEach, calculateAuto } = require("../utils/osu/calculations/reach");
+const { validateUsername, calculateNameAvailability } = require("../utils/osu/calculations/nameAvailability");
+const { createScorepostTitle } = require("../utils/osu/calculations/scorepost");
+const weightedPP = (values) => values.reduce((sum, pp, index) => sum + pp * 0.95 ** index, 0);
+
+test("reach preserves residual PP, evicts at 100, rounds upward, and leaves inputs intact", () => {
+  const scores = Array.from({ length: 100 }, (_, i) => ({ pp: 300 - i * 2 }));
+  const snapshot = structuredClone(scores);
+  const currentTotal = weightedPP(scores.map((s) => s.pp)) + 1234;
+  const result = calculateForFixedPlays(scores, currentTotal, currentTotal + 500, 3);
+  const merged = [...scores.map((s) => s.pp), ...Array(3).fill(result.eachPP)].sort((a, b) => b - a).slice(0, 100);
+  close(result.projectedTotal, weightedPP(merged) + 1234);
+  assert.ok(result.projectedTotal >= currentTotal + 500);
+  const smaller = [...scores.map((s) => s.pp), ...Array(3).fill(result.eachPP - 0.01)].sort((a, b) => b - a).slice(0, 100);
+  assert.ok(weightedPP(smaller) + 1234 < currentTotal + 500);
+  assert.deepEqual(scores, snapshot);
+  assert.equal(calculateForFixedPlays([], 10, 160, 1).eachPP, 150);
+  assert.equal(calculateForFixedPlays([], 10, 160.001, 1).eachPP, 150.01);
+  assert.equal(calculateForFixedPlays([{ pp: 1 }], 100, 500, 10).status, "reachable");
+});
+
+test("reach handles fixed-each minimal counts, auto selection, reached targets and bounds", () => {
+  const each = calculateForFixedEach([], 50, 240, 100);
+  assert.equal(each.numPlays, 2);
+  close(each.projectedTotal, 245);
+  assert.equal(calculateForFixedEach(Array(100).fill({ pp: 200 }), 5000, 5001, 100).status, "unreachable");
+  assert.equal(calculateAuto([{ pp: 200 }], 1000, 1050).numPlays, 1);
+  const auto = calculateAuto([{ pp: 200 }], 1000, 1400);
+  assert.equal(auto.numPlays, 2);
+  assert.ok(calculateForFixedPlays([{ pp: 200 }], 1000, 1400, 1).eachPP > 250);
+  assert.ok(auto.eachPP <= 250);
+  assert.equal(calculateAuto([], 0, 100).eachPP, 100);
+  assert.equal(calculateForFixedPlays([], 0, 50000, 1).eachPP, 50000);
+  assert.equal(calculateForFixedPlays([], 0, 50001, 1).status, "unreachable");
+  assert.equal(calculateForFixedPlays([], 0, 1e9, 100).status, "unreachable");
+  assert.equal(calculateForFixedEach([], 0, 1e9, 50000).status, "unreachable");
+  assert.equal(calculateReach([], 100, 99).message, "Already reached target PP (100 >= 99).");
+  assert.throws(() => calculateReach([], 0, 100, { plays: 2, each: 100 }), /Specify either `plays` or `each`, not both/);
+  for (const plays of [0, -1, 101, 1.5, NaN]) assert.throws(() => calculateForFixedPlays([], 0, 100, plays), /integer/);
+  for (const pp of [NaN, -1, Infinity]) assert.throws(() => calculateReach([], 0, pp), /finite/);
+  assert.throws(() => calculateForFixedEach([], 0, 100, 0), /positive/);
+});
+
+test("auto reach keeps the valid single-play route when no multi-play route meets the heuristic", () => {
+  const result = calculateAuto([100], 100, 3000);
+  assert.equal(result.status, "reachable");
+  assert.equal(result.numPlays, 1);
+  assert.equal(result.eachPP, 2905);
+  assert.equal(result.projectedTotal, 3000);
+  assert.deepEqual(calculateReach([100], 100, 3000), result);
+});
+
+test("auto reach finds a two-play route when one play cannot reach a high target", () => {
+  const result = calculateAuto([100], 100, 60000);
+  assert.equal(result.status, "reachable");
+  assert.equal(result.numPlays, 2);
+  assert.ok(result.eachPP <= 50000);
+  assert.ok(result.projectedTotal >= 60000);
+});
+
+test("auto reach finds a two-play route without an existing best play", () => {
+  const result = calculateAuto([], 0, 50001);
+  assert.equal(result.status, "reachable");
+  assert.equal(result.numPlays, 2);
+  assert.ok(result.eachPP <= 50000);
+  assert.ok(result.projectedTotal >= 50001);
+});
+
+test("username validation enforces character, spacing, and length rules", () => {
+  for (const name of ["abc", "12345", "[peppy]", "name-here", "name_here", "name here", "a".repeat(15)]) assert.equal(validateUsername(name).valid, true, name);
+  for (const name of [null, "ab", "a".repeat(16), "a.b", "éabc", " abc", "abc ", "ab  cd", "ab_cd ef", "ab\tcd", "ab\ncd"]) assert.equal(validateUsername(name).valid, false, String(name));
+});
+
+const profiles = (plays = 0) => Array.from({ length: 4 }, () => ({ statistics: { play_count: plays } }));
+const inactiveUser = { username: "Current", last_visit: "2020-01-01T00:00:00Z" };
+test("name availability uses all four playcounts, threshold boundary and private activity", () => {
+  const last = Date.parse(inactiveUser.last_visit);
+  const total = 4 * 1000;
+  const days = Math.floor(180 + 1580 * (1 - Math.exp(-total / 5900)) + total * 8 / 5900);
+  const occupied = calculateNameAvailability("Current", inactiveUser, profiles(1000), last + days * 86400000 - 1);
+  assert.equal(occupied.status, "Occupied");
+  assert.equal(occupied.thresholdDays, days);
+  assert.equal(calculateNameAvailability("Current", inactiveUser, profiles(1000), Date.parse(occupied.releaseAt)).status, "Eligible for release due to inactivity");
+  assert.equal(calculateNameAvailability("Current", { last_visit: null }, profiles()).status, "Unknown / Private Activity");
+  assert.equal(calculateNameAvailability("Current", { last_visit: "invalid" }, profiles()).status, "Unknown / Private Activity");
+  assert.equal(calculateNameAvailability("Current", inactiveUser, null).status, "Unknown / Unverified");
+  assert.equal(calculateNameAvailability("Absent", null).status, "Available");
+});
+
+test("name availability protects historical ranks in any ruleset, mappers, badges and former names", () => {
+  for (let i = 0; i < 4; i++) {
+    const all = profiles();
+    all[i].rank_highest = { rank: 100 };
+    assert.equal(calculateNameAvailability("Current", inactiveUser, all).status, "Protected indefinitely");
+  }
+  for (const key of ["ranked_beatmapset_count", "ranked_and_approved_beatmapset_count", "loved_beatmapset_count", "guest_beatmapset_count"]) {
+    assert.equal(calculateNameAvailability("Current", { ...inactiveUser, [key]: 1 }, profiles()).status, "Protected indefinitely");
+  }
+  assert.equal(calculateNameAvailability("Current", { ...inactiveUser, badges: [{}] }, profiles()).status, "Protected indefinitely");
+  const former = calculateNameAvailability("oldname", { ...inactiveUser, previous_usernames: ["OldName"] }, profiles());
+  assert.equal(former.status, "Former username");
+  assert.match(former.reasons[0], /Former username of active player Current.*Renamed date is unverified/);
+});
+
+test("scorepost formats normalized score metadata into a standard r/osugame title", () => {
+  const score = { accuracy: 99.12, max_combo: 900, mods: ["HD", "HR"], pp: 456.789, statistics: { miss: 2 },
+    beatmap: { version: "Insane", difficulty_rating: 6.123, max_combo: 1000 }, beatmapset: { artist: "Artist", title: "Title", creator: "Mapper" } };
+  assert.equal(createScorepostTitle(score, { username: "Player" }), "Player | Artist - Title [Insane] +HDHR (Mapper, 6.12★) 99.12% 900/1000x 2xMiss | 456.79pp");
+  assert.match(createScorepostTitle({ ...score, pp: null, mods: [], statistics: { count_miss: 0 } }), /\+NM.*0xMiss \| \?pp/);
+});

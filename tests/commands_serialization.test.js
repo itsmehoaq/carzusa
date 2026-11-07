@@ -15,17 +15,34 @@ test("every command file serializes offline with a unique name and an execute fu
     assert.ok(!names.has(json.name), `Duplicate command ${json.name}`);
     names.add(json.name);
   }
-  for (const name of ["osu", "rs", "top", "mc"]) assert.ok(names.has(name));
+  for (const name of ["osu", "rs", "top", "mc", "avatar", "pinned", "mostplayed", "checkname", "badges", "reach", "rank", "pp", "scorepost"]) assert.ok(names.has(name));
 });
 
 test("osu uses strictly subcommands; aliases have identical option definitions", () => {
   const osu = require("../commands/osu").data.toJSON();
-  assert.deepEqual(osu.options.map((option) => option.name), ["profile", "recent", "top", "map", "whatif", "bws", "matchcost", "link", "unlink"]);
+  assert.deepEqual(osu.options.map((option) => option.name), ["profile", "recent", "top", "map", "whatif", "bws", "matchcost", "link", "unlink", "avatar", "pinned", "mostplayed", "checkname", "badge", "reach", "rank", "pp", "scorepost"]);
   assert.ok(osu.options.every((option) => option.type === 1));
   assert.deepEqual(osu.options.find((option) => option.name === "map").options.map((option) => option.name), ["beatmap_id_or_url"]);
-  for (const [alias, subcommand] of [["rs", "recent"], ["top", "top"], ["mc", "matchcost"]]) {
+  for (const [alias, subcommand] of [["rs", "recent"], ["top", "top"], ["mc", "matchcost"], ...["avatar", "pinned", "mostplayed", "checkname", "reach", "rank", "pp", "scorepost"].map((name) => [name, name]), ["badges", "badge"]]) {
     assert.deepEqual(require(`../commands/${alias}`).data.toJSON().options, osu.options.find((option) => option.name === subcommand).options);
   }
   const recent = osu.options.find((option) => option.name === "recent");
   assert.deepEqual(recent.options.map((option) => option.name), ["username", "mode", "include_fails", "index"]);
+  for (const command of osu.options) {
+    let optionalSeen = false;
+    for (const option of command.options || []) {
+      assert.ok(!optionalSeen || !option.required, `${command.name}: required options must precede optional options`);
+      if (!option.required) optionalSeen = true;
+    }
+  }
+  for (const [name, target] of [["reach", "target_user"], ["pp", "target_pp"], ["rank", "rank"], ["checkname", "query"], ["scorepost", "score_id_or_url"]]) {
+    const options = osu.options.find((option) => option.name === name).options;
+    assert.equal(options[0].name, target);
+    assert.equal(options[0].required, true);
+    if (name === "reach") {
+      assert.equal(options[0].type, 3);
+      assert.equal(options[0].description, "Player whose PP to reach");
+      assert.ok(!options.some((option) => option.name === "target_pp"));
+    }
+  }
 });

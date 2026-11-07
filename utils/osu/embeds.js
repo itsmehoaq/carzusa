@@ -94,4 +94,63 @@ function matchCostEmbed(result, page = 0, pageSize = 15) {
   return embed;
 }
 
-module.exports = { profileEmbed, scoreEmbed, beatmapEmbed, bwsEmbed, whatIfEmbed, matchCostEmbed };
+function avatarEmbed(user, mode = "osu") {
+  const embed = profileBase(user, mode);
+  if (user.avatar_url) embed.setImage(new URL(user.avatar_url, "https://osu.ppy.sh").href);
+  return embed;
+}
+
+function pinnedEmbed(score, user, options = {}) {
+  return scoreEmbed(score, user, { ...options, kind: "Pinned" });
+}
+
+function mostPlayedEmbed(user, entries, page = 0, totalPages = Math.max(1, Math.ceil(entries.length / 10))) {
+  return profileBase(user, "osu").setDescription(entries.slice(page * 10, (page + 1) * 10).map((entry, index) => {
+    const map = entry.beatmap || {};
+    const set = entry.beatmapset || map.beatmapset || {};
+    return `**${page * 10 + index + 1}.** [${safe(`${set.artist || "Unknown artist"} - ${set.title || "Unknown title"} [${map.version || "?"}]`, 220)}](https://osu.ppy.sh/beatmaps/${map.id}) • ${number(entry.count)} plays • ${number(map.difficulty_rating, 2)}★`;
+  }).join("\n") || "No most-played maps found.")
+    .setFooter({ text: `Most played • Page ${page + 1}/${totalPages}` });
+}
+
+function checkNameEmbed(result) {
+  const embed = base().setTitle(`Username: ${safe(result.query)}`)
+    .addFields(field("Status", result.status, false), field("Reasons", result.reasons.map((reason) => safe(reason, 700)).join("\n"), false));
+  if (result.releaseAt) {
+    const timestamp = Math.floor(Date.parse(result.releaseAt) / 1000);
+    embed.addFields(field("Eligible for release at", `${date(result.releaseAt)} (<t:${timestamp}:R>)`, false));
+  }
+  return embed;
+}
+
+function badgeEmbed(user, badges, page = 0, totalPages = Math.max(1, Math.ceil(badges.length / 5))) {
+  const selected = badges.slice(page * 5, (page + 1) * 5);
+  if (!selected.length) return [profileBase(user, "osu").setDescription("No profile badges found.")
+    .setFooter({ text: `Profile badges • Page ${page + 1}/${totalPages}` })];
+  return selected.map((badge) => {
+    const image = badge.image_url || badge['image@2x_url'];
+    const embed = profileBase(user, "osu").setDescription(`**${safe(badge.description, 200)}**\nAwarded ${date(badge.awarded_at)}`)
+      .setFooter({ text: `Profile badges • Page ${page + 1}/${totalPages}` });
+    if (image) embed.setImage(new URL(image, "https://osu.ppy.sh").href);
+    return embed;
+  });
+}
+
+function reachEmbed(user, result, mode = "osu", targetPlayer = null) {
+  const embed = profileBase(user, mode).setDescription(result.message || "Estimated plays needed to reach the target.")
+    .addFields(field("Target PP", pp(result.targetPP)));
+  if (targetPlayer) embed.addFields(field("Target player", `[${safe(targetPlayer.username)}](https://osu.ppy.sh/users/${targetPlayer.id}/${mode})`));
+  if (result.numPlays !== undefined) embed.addFields(field("Required plays", number(result.numPlays)),
+    field("PP per play", pp(result.eachPP)), field("Projected total", pp(result.projectedTotal)));
+  return embed.setFooter({ text: "Estimate from the top 100; residual PP is preserved without recalculating bonus PP." });
+}
+
+function scorepostEmbed(score, user, title) {
+  const embed = scoreEmbed(score, user, { kind: "Scorepost" });
+  // Keep user-supplied names from closing the title's code fence.
+  const codeTitle = title.replace(/`/g, "ˋ").replace(/[\r\n]/g, " ").slice(0, 3500);
+  return embed.setDescription(`\`\`\`\n${codeTitle}\n\`\`\`\n[Score](https://osu.ppy.sh/scores/${score.id})`);
+}
+
+module.exports = { profileEmbed, scoreEmbed, beatmapEmbed, bwsEmbed, whatIfEmbed, matchCostEmbed,
+  avatarEmbed, pinnedEmbed, mostPlayedEmbed, checkNameEmbed, badgeEmbed, reachEmbed, scorepostEmbed };

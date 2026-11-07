@@ -105,6 +105,22 @@ function createOsuClient({
 
   return {
     getUser: (usernameOrId, mode = "osu") => get(`/users/${encodeURIComponent(usernameOrId)}/${mode}`),
+    getUserByUsername: (username, mode = "osu") => get(`/users/@${encodeURIComponent(username)}/${mode}`, { key: "username" }),
+    async getScore(scoreId, mode = null) {
+      return normalizeScore(await get(`/scores/${mode === null ? "" : `${encodeURIComponent(mode)}/`}${encodeURIComponent(scoreId)}`));
+    },
+    async getUserPinnedScores(userId, mode = "osu", limit = 100) {
+      const data = await get(`/users/${encodeURIComponent(userId)}/scores/pinned`, {
+        mode, limit: Math.max(1, Math.min(100, limit)),
+      });
+      return data.map(normalizeScore);
+    },
+    getUserMostPlayed: (userId, limit = 100) => get(`/users/${encodeURIComponent(userId)}/beatmapsets/most_played`, {
+      limit: Math.max(1, Math.min(100, limit)),
+    }),
+    getPerformanceRankings: (mode = "osu", page = 1, country = null) => get(`/rankings/${encodeURIComponent(mode)}/performance`, {
+      page, ...(country ? { country } : {}),
+    }),
     async getUserRecentScores(userId, mode = "osu", includeFails = true, limit = 50) {
       const data = await get(`/users/${encodeURIComponent(userId)}/scores/recent`, {
         mode, include_fails: includeFails ? 1 : 0, limit: Math.max(1, Math.min(50, limit)),

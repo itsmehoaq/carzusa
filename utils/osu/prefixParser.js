@@ -60,6 +60,28 @@ const COMMAND_ALIASES = {
 
   // unlink
   unlink: { command: "unlink" },
+  avatar: { command: "avatar" }, av: { command: "avatar" }, pfp: { command: "avatar" },
+  pinned: { command: "pinned" }, pin: { command: "pinned" }, p: { command: "pinned" },
+  tpin: { command: "pinned", defaultMode: "taiko" },
+  cpin: { command: "pinned", defaultMode: "fruits" },
+  mpin: { command: "pinned", defaultMode: "mania" },
+  mostplayed: { command: "mostplayed" }, mp: { command: "mostplayed" },
+  checkname: { command: "checkname" }, cn: { command: "checkname" },
+  namecheck: { command: "checkname" }, claimname: { command: "checkname" },
+  badge: { command: "badge" }, badges: { command: "badge" }, badgelist: { command: "badge" },
+  reach: { command: "reach" },
+  treach: { command: "reach", defaultMode: "taiko" },
+  creach: { command: "reach", defaultMode: "fruits" },
+  mreach: { command: "reach", defaultMode: "mania" },
+  rank: { command: "rank" },
+  trank: { command: "rank", defaultMode: "taiko" },
+  crank: { command: "rank", defaultMode: "fruits" },
+  mrank: { command: "rank", defaultMode: "mania" },
+  pp: { command: "pp" },
+  tpp: { command: "pp", defaultMode: "taiko" },
+  cpp: { command: "pp", defaultMode: "fruits" },
+  mpp: { command: "pp", defaultMode: "mania" },
+  scorepost: { command: "scorepost" }, post: { command: "scorepost" },
 };
 
 function normalizeMode(input) {
@@ -99,6 +121,12 @@ function parsePrefixCommand(content) {
   if (!aliasDef) return null;
 
   const command = aliasDef.command;
+  if (command === "checkname") {
+    // Preserve whitespace so an invalid name cannot become a different, valid lookup.
+    const raw = match[3] || "";
+    const query = /^(".*"|'.*')$/.test(raw) ? raw.slice(1, -1) : raw;
+    return { isCommand: true, prefix, alias: rawCmd, command, options: { query: query || null } };
+  }
   let mode = aliasDef.defaultMode || null;
   let include_fails = null;
   let index = null;
@@ -106,6 +134,8 @@ function parsePrefixCommand(content) {
   let warmups = null;
   let skip = null;
   let ez = null;
+  let plays = null;
+  let each = null;
 
   const rawTokens = tokenize(match[3] || "");
   const positional = [];
@@ -113,6 +143,12 @@ function parsePrefixCommand(content) {
   for (let i = 0; i < rawTokens.length; i++) {
     const token = rawTokens[i];
     const lower = token.toLowerCase();
+    if (["reach", "rank", "pp"].includes(command) && ["-plays", "--plays", "-each", "--each"].includes(lower) && i + 1 < rawTokens.length) {
+      const value = Number(rawTokens[++i]);
+      if (lower.endsWith("plays")) plays = value;
+      else each = value;
+      continue;
+    }
 
     // Mode flags
     if ((lower === "-m" || lower === "-mode" || lower === "--mode") && i + 1 < rawTokens.length) {
@@ -150,14 +186,13 @@ function parsePrefixCommand(content) {
       continue;
     }
 
-    // Index flags (recent, top)
-    if ((lower === "-i" || lower === "-index" || lower === "-p" || lower === "-page") && i + 1 < rawTokens.length) {
-      const val = parseInt(rawTokens[i + 1], 10);
-      if (!isNaN(val)) {
-        index = val;
-        i++;
-        continue;
-      }
+    // Page and index flags require a complete positive integer token.
+    if (["-i", "-index", "--index", "-p", "-page", "--page"].includes(lower)) {
+      const value = rawTokens[++i];
+      if (!/^[1-9]\d*$/.test(value)) return null;
+      index = Number(value);
+      if (!Number.isSafeInteger(index)) return null;
+      continue;
     }
 
     // Badges flags (bws)
@@ -203,6 +238,18 @@ function parsePrefixCommand(content) {
 
   if (command === "unlink") {
     options = {};
+  } else if (command === "scorepost") {
+    options = { score_id_or_url: positional[0] || null };
+  } else if (["reach", "rank", "pp"].includes(command)) {
+    const target = positional.shift() || null;
+    if (positional.length > 1 && !mode) {
+      const possibleMode = normalizeMode(positional[positional.length - 1]);
+      if (possibleMode) { mode = possibleMode; positional.pop(); }
+    }
+    options = { username: positional.join(" ") || null, mode, plays, each };
+    if (command === "rank") options.rank = target;
+    else if (command === "reach") options.target_user = target;
+    else options.target_pp = target === null ? null : Number(target);
   } else if (command === "link") {
     let username = null;
     if (positional.length > 0) {
@@ -277,7 +324,7 @@ function parsePrefixCommand(content) {
       username: username || null,
       mode: mode || null,
     };
-  } else if (command === "recent" || command === "top") {
+  } else if (["recent", "top", "pinned"].includes(command)) {
     let username = null;
     const maxIndex = command === "recent" ? 50 : 100;
 
@@ -352,7 +399,7 @@ function parsePrefixCommand(content) {
     if (command === "recent") {
       options.include_fails = include_fails !== null ? include_fails : true;
     }
-  } else if (command === "profile") {
+  } else if (["profile", "avatar", "mostplayed", "badge"].includes(command)) {
     let username = null;
     if (positional.length > 0) {
       if (positional.length > 1 && !mode) {
@@ -371,6 +418,7 @@ function parsePrefixCommand(content) {
       username: username || null,
       mode: mode || null,
     };
+    if (["mostplayed", "badge"].includes(command)) options.page = index ?? 1;
   }
 
   return {

@@ -156,3 +156,44 @@ test("complete small match needs no further pages and has no truncation warning"
   assert.equal((await client.getMatch(1)).truncated, false);
   assert.equal(http.get.mock.callCount(), 1);
 });
+
+test("numeric username lookup is distinct from ID lookup and encodes the exact username", async () => {
+  const { client, http } = setup();
+  await client.getUserByUsername("12345");
+  await client.getUserByUsername("A B_[x]", "mania");
+  await client.getUser("12345", "taiko");
+  assert.equal(http.get.mock.calls[0].arguments[0], "https://osu.ppy.sh/api/v2/users/@12345/osu");
+  assert.deepEqual(http.get.mock.calls[0].arguments[1].params, { key: "username" });
+  assert.equal(http.get.mock.calls[1].arguments[0], "https://osu.ppy.sh/api/v2/users/@A%20B_%5Bx%5D/mania");
+  assert.match(http.get.mock.calls[2].arguments[0], /\/users\/12345\/taiko$/);
+});
+
+test("score lookup uses unified or ruleset endpoints and normalizes their scores", async () => {
+  const { client, http } = setup();
+  http.get.mock.mockImplementation(async () => ({ data: { id: 7, accuracy: 0.99, mods: [{ acronym: "HD" }], pp: 123 } }));
+  for (const mode of [null, "osu", "taiko", "fruits", "mania"]) {
+    const score = await client.getScore(7, mode);
+    assert.equal(score.accuracy, 99);
+    assert.deepEqual(score.mods, ["HD"]);
+    assert.equal(http.get.mock.calls.at(-1).arguments[0], `https://osu.ppy.sh/api/v2/scores/${mode ? `${mode}/` : ""}7`);
+  }
+  await client.getScore("7/8", "a/b");
+  assert.match(http.get.mock.calls.at(-1).arguments[0], /\/scores\/a%2Fb\/7%2F8$/);
+});
+
+test("pinned, most-played and performance rankings forward endpoint query parameters", async () => {
+  const { client, http } = setup();
+  http.get.mock.mockImplementation(async () => ({ data: [{ id: 1, accuracy: 0.5, mods: ["HR"] }] }));
+  const scores = await client.getUserPinnedScores("a/b", "fruits", 999);
+  assert.equal(scores[0].accuracy, 50);
+  assert.match(http.get.mock.calls[0].arguments[0], /\/users\/a%2Fb\/scores\/pinned$/);
+  assert.deepEqual(http.get.mock.calls[0].arguments[1].params, { mode: "fruits", limit: 100 });
+  await client.getUserMostPlayed(42);
+  assert.match(http.get.mock.calls[1].arguments[0], /\/users\/42\/beatmapsets\/most_played$/);
+  assert.deepEqual(http.get.mock.calls[1].arguments[1].params, { limit: 100 });
+  await client.getPerformanceRankings("mania", 2, "VN");
+  assert.match(http.get.mock.calls[2].arguments[0], /\/rankings\/mania\/performance$/);
+  assert.deepEqual(http.get.mock.calls[2].arguments[1].params, { page: 2, country: "VN" });
+  await client.getPerformanceRankings();
+  assert.deepEqual(http.get.mock.calls[3].arguments[1].params, { page: 1 });
+});

@@ -25,6 +25,11 @@ function createMessageInteraction(message, subcommand, options = {}) {
       getInteger: (name) => {
         const val = options[name];
         if (val !== undefined && val !== null) {
+          if (name === "plays") {
+            const plays = Number(val);
+            if (!Number.isInteger(plays) || plays < 1 || plays > 100) throw new Error("Plays must be an integer between 1 and 100.");
+            return plays;
+          }
           const num = parseInt(val, 10);
           if (!isNaN(num)) return num;
         }
@@ -34,6 +39,7 @@ function createMessageInteraction(message, subcommand, options = {}) {
         const val = options[name];
         if (val !== undefined && val !== null) {
           const num = Number(val);
+          if (["target_pp", "each"].includes(name) && !Number.isFinite(num)) throw new Error(`Provide a valid ${name} value for ${subcommand}.`);
           if (!isNaN(num)) return num;
         }
         if (required) throw new Error(`Provide a valid ${name} value for ${subcommand}.`);
