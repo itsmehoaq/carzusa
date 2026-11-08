@@ -15,6 +15,7 @@ const user = {
   join_date: "2020-01-01T00:00:00Z", statistics: { pp: 5000, global_rank: 1000, country_rank: 10, hit_accuracy: 98.5, play_count: 100, level: { current: 100, progress: 25 } },
 };
 const map = {
+  status: "ranked",
   id: 12, cs: 4, ar: 9, accuracy: 8, drain: 6, bpm: 180, total_length: 123, difficulty_rating: 5.1, version: "Insane",
   beatmapset: { id: 10, artist: "Artist", title: "Song", creator: "Mapper", covers: { cover: "https://assets.ppy.sh/cover.jpg" } },
 };
@@ -22,6 +23,23 @@ const play = {
   id: 1, total_score: 123456, accuracy: 98.76, max_combo: 400, mods: ["HD"], rank: "A", pp: null,
   statistics: { great: 100, ok: 10, miss: 2 }, beatmap: map, failed: false, ended_at: "2026-01-01T00:00:00Z",
 };
+// Synthetic presentation contracts exercise wiring only; they do not prove runtime PP/assets.
+const templateContract = require("./fixtures/osuPresentation/contracts.json")[0];
+const templateOptions = { ...templateContract.options };
+const templateCalculation = { ...templateContract.calculation, title: "Song", artist: "Artist", creator: "Mapper", version: "Insane" };
+map.sourceCalculation = templateCalculation;
+play.sourceCalculation = templateCalculation;
+function injectTemplateAssets(t) {
+  const performance = require("../utils/osu/calculations/performance");
+  t.mock.method(performance, "calculate", async () => structuredClone(templateCalculation));
+  t.mock.method(performance, "enrichScore", async (score, beatmap) => ({ ...score, beatmap, sourceCalculation: structuredClone(score.sourceCalculation ?? templateCalculation) }));
+  for (const name of ["scoreEmbed", "scoreListEmbed", "beatmapEmbed", "beatmapMessage"]) {
+    const original = embeds[name];
+    t.mock.method(embeds, name, (value, userOrOptions, options) => name.startsWith("beatmap")
+      ? original(value, { ...templateOptions, ...userOrOptions, rankEmotes: templateOptions.rankEmotes, diffEmotes: templateOptions.diffEmotes })
+      : original(value, userOrOptions, { ...templateOptions, ...options, rankEmotes: templateOptions.rankEmotes, diffEmotes: templateOptions.diffEmotes }));
+  }
+}
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 
 function interaction(command = "profile", values = {}) {
@@ -34,7 +52,7 @@ function interaction(command = "profile", values = {}) {
   };
   return {
     guildId: "723867861600174090",
-    user: { id: "123" },
+    user: { id: "123", username: "Tester" },
     options: {
       getSubcommand: () => { assert.equal(deferred, true); return command; },
       getString: get, getInteger: get, getBoolean: get, getNumber: get,
@@ -68,6 +86,7 @@ test("all osu subcommands and standalone aliases silently skip other servers and
 });
 
 function mockServices(t, check = () => {}) {
+  injectTemplateAssets(t);
   const guarded = (value) => async () => { check(); return structuredClone(value); };
   t.mock.method(api, "getUser", guarded(user));
   t.mock.method(api, "getUserByUsername", guarded(user));
@@ -77,7 +96,7 @@ function mockServices(t, check = () => {}) {
   t.mock.method(api, "getPerformanceRankings", guarded({ ranking: Array(50).fill({ pp: 6000 }) }));
   t.mock.method(api, "getUserRecentScores", guarded([play]));
   t.mock.method(api, "getUserTopScores", guarded([play]));
-  t.mock.method(api, "getBeatmap", guarded(map));
+  t.mock.method(api, "getBeatmap", guarded({ ...map, max_combo: 500 }));
   t.mock.method(api, "getMatch", guarded({ match: { id: 1, name: "A vs B" }, users: [], events: [] }));
   t.mock.method(db, "getLinkedUser", guarded({ osu_id: 42, default_mode: "osu" }));
   t.mock.method(db, "linkUser", guarded({ osu_id: 42 }));
@@ -140,7 +159,8 @@ test("recent defaults to include failures, respects false, and starts at a 1-bas
   const i = interaction("recent", { username: "Player", index: 2 });
   await osu.execute(i);
   assert.deepEqual(api.getUserRecentScores.mock.calls[0].arguments, [42, "osu", true]);
-  assert.equal(i.editReply.mock.calls[0].arguments[0].embeds[0].toJSON().url, "https://osu.ppy.sh/scores/2");
+  assert.equal(i.editReply.mock.calls[0].arguments[0].embeds[0].toJSON().url, undefined);
+  assert.equal(i.createCollector.mock.callCount(), 0);
   const filtered = interaction("recent", { username: "Player", include_fails: false });
   await osu.execute(filtered);
   assert.deepEqual(api.getUserRecentScores.mock.calls[1].arguments, [42, "osu", false]);
@@ -154,7 +174,7 @@ test("empty lists, missing targets, missing API config, and 404s produce deferre
   api.getUserTopScores.mock.mockImplementation(async () => []);
   const empty = interaction("top", { username: "Player" });
   await osu.execute(empty);
-  assert.match(empty.editReply.mock.calls[0].arguments[0].content, /No top scores/);
+  assert.equal(empty.editReply.mock.calls[0].arguments[0].content, "**`Player` was not found or not enough plays in `Bancho`.**");
   db.getLinkedUser.mock.mockImplementation(async () => null);
   const missing = interaction("profile");
   await osu.execute(missing);
@@ -243,51 +263,39 @@ test("timeout cleanup waits for a pending button update and leaves both controls
   assert.ok(i.editReply.mock.calls.at(-1).arguments[0].components[0].toJSON().components.every((button) => button.disabled));
 });
 
-test("failed score map enrichment computes completion without scaling normalized accuracy twice", async (t) => {
+test("mapped recent consumes source completion and recomputes accuracy from judgments", async (t) => {
   mockServices(t);
-  api.getUserRecentScores.mock.mockImplementation(async () => [{ ...play, failed: true, passed: false, completion: null, accuracy: 0.5, beatmap: { id: 12 } }]);
-  api.getBeatmap.mock.mockImplementation(async () => ({ ...map, count_circles: 224 }));
+  api.getUserRecentScores.mock.mockImplementation(async () => [{ ...play, failed: true, accuracy: 0.5,
+    sourceCalculation: { ...templateCalculation, extra_info: { ...templateCalculation.extra_info, map_completion: 50 } } }]);
   const i = interaction("recent", { username: "Player" });
   await osu.execute(i);
-  const description = i.editReply.mock.calls[0].arguments[0].embeds[0].toJSON().description;
-  assert.match(description, /\*\*0\.50%\*\*/);
-  assert.match(description, /Failed • 50\.00% completion/);
+  const embed = payload(i).embeds[0].toJSON();
+  assert.equal(embed.description, "▸ **<template-rank-A>** ▸ **245.56PP** (300.12PP for 99.12% FC) ▸ 92.26%\n▸ 123,456 ▸ x400/500 ▸ [100/10/0/2]\n▸ **Map Completion:** 50.00%");
+  assert.equal(embed.timestamp, undefined);
+  assert.equal(embed.url, undefined);
+  assert.equal(i.createCollector.mock.callCount(), 0);
+  assert.equal(api.getBeatmap.mock.callCount(), 1);
 });
 
-test("recent pagination enriches failed plays on every page and reuses beatmap counts", async (t) => {
+test("mapped recent selects only the requested play without adding controls", async (t) => {
   mockServices(t);
-  api.getUserRecentScores.mock.mockImplementation(async () => [
-    play,
-    { ...play, id: 2, failed: true, passed: false, completion: null, beatmap: { id: 12 } },
-    { ...play, id: 3, failed: true, passed: false, completion: null, beatmap: { id: 13 } },
-    { ...play, id: 4, failed: true, passed: false, completion: null, beatmap: { id: 12 }, statistics: { great: 166, miss: 2 } },
-    { ...play, id: 5, failed: true, passed: false, completion: 80, beatmap: { id: 14 } },
-  ]);
-  api.getBeatmap.mock.mockImplementation(async (id) => ({ ...map, id, count_circles: id === 13 ? 448 : 224 }));
+  const scores = [play, { ...play, total_score: 222, sourceCalculation: { ...templateCalculation, extra_info: { ...templateCalculation.extra_info, map_completion: 25 } } }];
+  api.getUserRecentScores.mock.mockImplementation(async () => scores);
   const i = interaction("recent", { username: "Player", index: 2 });
   await osu.execute(i);
-  const completion = (payload) => payload.embeds[0].toJSON().description.match(/Failed • (.* completion)/)?.[1];
-  assert.equal(completion(i.editReply.mock.calls[0].arguments[0]), "50.00% completion");
-  const owner = { user: i.user, customId: "osu:next", update: mock.fn(async () => {}) };
-  for (const expected of ["25.00% completion", "75.00% completion", "80.00% completion"]) {
-    i.collector.emit("collect", owner);
-    await tick();
-    assert.equal(completion(owner.update.mock.calls.at(-1).arguments[0]), expected);
-  }
-  owner.customId = "osu:prev";
-  for (const expected of ["75.00% completion", "25.00% completion", "50.00% completion", undefined]) {
-    i.collector.emit("collect", owner);
-    await tick();
-    assert.equal(completion(owner.update.mock.calls.at(-1).arguments[0]), expected);
-  }
-  assert.deepEqual(api.getBeatmap.mock.calls.map((call) => call.arguments[0]).sort(), [12, 13]);
+  assert.equal(payload(i).components, undefined);
+  assert.equal(i.createCollector.mock.callCount(), 0);
+  assert.equal(payload(i).embeds[0].toJSON().description, "▸ **<template-rank-A>** ▸ **245.56PP** (300.12PP for 99.12% FC) ▸ 92.26%\n▸ 222 ▸ x400/500 ▸ [100/10/0/2]\n▸ **Map Completion:** 25.00%");
 });
 
-test("score embeds link unified score IDs and fall back to the beatmap for unsubmitted plays", () => {
-  const score = api.normalizeScore({ ...play, id: 12345, legacy_score_id: 678, accuracy: 0.9876 });
-  assert.equal(embeds.scoreEmbed(score, user).toJSON().url, "https://osu.ppy.sh/scores/12345");
-  const failed = api.normalizeScore({ ...play, id: null, passed: false, legacy_score_id: null });
-  assert.equal(embeds.scoreEmbed(failed, user).toJSON().url, "https://osu.ppy.sh/beatmaps/12");
+test("mapped scores omit unified score links for submitted and unsubmitted plays", () => {
+  for (const id of [12345, null]) {
+    const score = api.normalizeScore({ ...play, id, accuracy: 0.9876 });
+    const embed = embeds.scoreEmbed(score, user, templateOptions).toJSON();
+    assert.equal(embed.url, undefined);
+    assert.equal(embed.author.url, "https://osu.ppy.sh/b/12");
+    assert.equal(embed.timestamp, undefined);
+  }
 });
 
 test("resource parsing supports raw IDs and official difficulty/match URLs, rejecting ambiguous or foreign links", () => {
@@ -296,16 +304,7 @@ test("resource parsing supports raw IDs and official difficulty/match URLs, reje
   for (const input of ["0", "-1", "abc", "https://evil.example/beatmaps/12", "https://osu.ppy.sh/beatmapsets/10", "https://osu.ppy.sh/beatmaps/12junk"]) assert.throws(() => parseResourceId(input, "beatmap"), /valid beatmap/);
 });
 
-test("embeds expose raw attributes, failed completion, null PP, weighted estimate, and match MVP", () => {
-  const score = embeds.scoreEmbed({ ...play, failed: true, completion: 50 }, user).toJSON();
-  assert.match(score.description, /\*\*— pp\*\*/);
-  assert.match(score.description, /Failed • 50\.00% completion/);
-  const beatmap = embeds.beatmapEmbed(map).toJSON();
-  assert.match(beatmap.footer.text, /Raw map attributes/);
-  assert.equal(beatmap.fields[0].value, "CS **4.0** • AR **9.0** • OD **8.0** • HP **6.0**");
-  const whatIf = embeds.whatIfMessage(user, { placement: null, weightedDifference: 0, projectedWeightedPP: 4000, estimatedTotalPP: 5000 }, 0);
-  assert.match(whatIf, /Estimated total PP: \*\*5,000\.00 pp\*\*/);
-  assert.match(whatIf, /Estimate/);
+test("unmapped match MVP and history warning remain unchanged", () => {
   const match = embeds.matchCostEmbed({ id: 1, name: "A vs B", gamesPlayed: 3, players: [{ username: "A", matchCost: 2.58, gamesPlayed: 3 }], teamVs: true, teamScore: { red: 2, blue: 1 }, truncated: true }).toJSON();
   assert.match(match.description, /MVP/);
   assert.match(match.description, /Incomplete history:.*500-event/);
@@ -368,6 +367,7 @@ test("checkname fetches all four rulesets by resolved ID and fails closed on a s
 });
 
 test("scorepost does not resolve a linked target, forwards legacy mode and enriches beatmap info", async (t) => {
+  injectTemplateAssets(t);
   const score = t.mock.method(api, "getScore", async () => ({ ...play, user_id: 42 }));
   const users = t.mock.method(api, "getUser", async () => user);
   const maps = t.mock.method(api, "getBeatmap", async () => ({ ...map, max_combo: 500 }));
@@ -528,13 +528,13 @@ test("empty pinned, most-played and badge lists return useful replies; invalid p
   }
 });
 
-test("top and pinned indices select five-entry pages with absolute positions and partial final pages", async (t) => {
+test("unmapped pinned indices select five-entry pages with absolute positions and partial final pages", async (t) => {
   mockServices(t);
   const scores = Array.from({ length: 12 }, (_, index) => ({ ...play, id: index + 1 }));
   api.getUserTopScores.mock.mockImplementation(async () => scores);
   api.getUserPinnedScores.mock.mockImplementation(async () => scores);
   for (const mode of ["osu", "taiko", "fruits", "mania"]) {
-    for (const command of ["top", "pinned"]) {
+    for (const command of ["pinned"]) {
       for (const [index, first, last, page] of [[1, 1, 5, 1], [5, 1, 5, 1], [6, 6, 10, 2], [10, 6, 10, 2], [11, 11, 12, 3], [12, 11, 12, 3]]) {
         const i = interaction(command, { username: "Player", mode, index });
         i.member = { displayColor: 0x2468ac };
@@ -566,35 +566,28 @@ test("top and pinned indices select five-entry pages with absolute positions and
   }
 });
 
-test("recent keeps a player and mode content header on first render, navigation and expiry", async (t) => {
+test("mapped recent and Number top keep source headers, color and absent controls", async (t) => {
   mockServices(t);
   api.getUserRecentScores.mock.mockImplementation(async () => [play, { ...play, id: 2 }]);
-  for (const [mode, label] of [["osu", "osu!"], ["taiko", "osu!taiko"], ["fruits", "osu!catch"], ["mania", "osu!mania"]]) {
+  api.getUserTopScores.mock.mockImplementation(async () => Array(7).fill(play));
+  for (const [mode, label] of [["osu", "osu! Standard"], ["taiko", "Taiko"], ["fruits", "Catch the Beat!"], ["mania", "osu! Mania"]]) {
     const i = interaction("recent", { mode, index: 2 });
     i.member = { displayColor: 0x123456 };
     await osu.execute(i);
-    const initial = payload(i);
-    assert.equal(initial.content, `Recent play for **Player** • ${label}`);
-    assert.equal(initial.embeds.length, 1);
-    assert.equal(initial.embeds[0].toJSON().color, 0x123456);
-    assert.equal(initial.embeds[0].toJSON().url, "https://osu.ppy.sh/scores/2");
-    const owner = { user: i.user, customId: "osu:prev", update: mock.fn(async () => {}) };
-    for (const customId of ["osu:prev", "osu:next"]) {
-      owner.customId = customId;
-      i.collector.emit("collect", owner);
-      await tick();
-      const update = owner.update.mock.calls.at(-1).arguments[0];
-      assert.equal(update.content, initial.content);
-      assert.equal(update.embeds.length, 1);
-      assert.deepEqual(update.allowedMentions, { parse: [] });
-      assert.equal(update.embeds[0].toJSON().url, `https://osu.ppy.sh/scores/${customId === "osu:prev" ? 1 : 2}`);
-    }
-    i.collector.emit("end");
-    await tick();
-    const expiry = i.editReply.mock.calls.at(-1).arguments[0];
-    assert.equal(expiry.content, undefined, "expiry edit preserves existing content");
-    assert.equal(expiry.embeds, undefined, "expiry edit preserves the last score");
-    assert.ok(expiry.components[0].toJSON().components.every((button) => button.disabled));
+    assert.equal(payload(i).content, `**Recent ${label} Play for Player:**`);
+    assert.equal(payload(i).embeds[0].toJSON().color, 0x123456);
+    assert.equal(payload(i).embeds[0].toJSON().url, undefined);
+    assert.equal(payload(i).components, undefined);
+    assert.equal(i.createCollector.mock.callCount(), 0);
+    const top = interaction("top", { mode, index: 6 });
+    await osu.execute(top);
+    const embed = payload(top).embeds[0].toJSON();
+    assert.equal(embed.author.name, `Number 6 ${label} Play for Player`);
+    assert.equal(embed.author.url, "https://osu.ppy.sh/users/42");
+    assert.equal(embed.footer.text, "On osu! Bancho Server | Page 1 of 1");
+    assert.equal(embed.description.split("Score Set").length - 1, 1);
+    assert.equal(payload(top).components, undefined);
+    assert.equal(top.createCollector.mock.callCount(), 0);
   }
 });
 
@@ -603,17 +596,11 @@ test("plain-text what-if, link and unlink payloads retain meaningful results and
   api.getUserTopScores.mock.mockImplementation(async () => [{ pp: 300 }, { pp: 200 }]);
   const i = interaction("whatif", { username: "Player", mode: "mania", pp: 250 });
   await osu.execute(i);
-  assert.deepEqual(payload(i), { content: [
-    "**Player** • osu!mania • What if",
-    "Hypothetical play: **250.00 pp** • Placement: **#2**",
-    "Weighted contribution change: **+228.00 pp**",
-    "Projected weighted PP: **718.00 pp** • Estimated total PP: **5,228.00 pp**",
-    "Estimate from the top 100; bonus PP and plays outside this list are not recalculated.",
-  ].join("\n"), allowedMentions: { parse: [] } });
+  assert.deepEqual(payload(i), { content: "**A score of `250.00pp` (`237.50pp` weighted) for `Player` would be their `#2` top play and increase their total to `5,047.50pp` (`+47.50`).**", allowedMentions: { parse: [] } });
   const linked = interaction("link", { username: "Player", mode: "taiko" });
   await osu.execute(linked);
-  assert.deepEqual(payload(linked), { content: "Linked osu! account Player (default ruleset: taiko).", allowedMentions: { parse: [] } });
+  assert.deepEqual(payload(linked), { content: ":white_check_mark: **Tester, your `Bancho` username has been edited to `Player`**", allowedMentions: { parse: [] } });
   const unlinked = interaction("unlink");
   await osu.execute(unlinked);
-  assert.deepEqual(payload(unlinked), { content: "Your osu! account link has been removed." });
+  assert.deepEqual(payload(unlinked), { content: ":white_check_mark: **Tester, your `Bancho` username has been removed.**" });
 });

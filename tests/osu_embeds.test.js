@@ -27,20 +27,7 @@ function compact(embed) {
 }
 
 for (const [mode, label] of modes) {
-  test(`profile, avatar and player utility payloads use ${mode} author links and supplied color`, () => {
-    const profile = json(render.profileEmbed(player, mode, { color: 0x123456 }));
-    assert.deepEqual(profile.author, { name: `Player • ${label}`, url: `https://osu.ppy.sh/users/42/${mode}`, icon_url: "https://osu.ppy.sh/images/flags/VN.png" });
-    assert.equal(profile.color, 0x123456);
-    assert.equal(profile.thumbnail.url, "https://a.ppy.sh/42");
-    assert.equal(profile.description, [
-      "**5,000.00 pp** • Global **#1,000** • VN **#10**",
-      "Accuracy **98.50%** • Plays **100**",
-      "Level **100** (25%) • Play time **2.0h**",
-      "Ranked score **123,456** • Total score **987,654**",
-      "Joined <t:1577836800:f>",
-    ].join("\n"));
-    assert.equal(profile.footer.text, "osu! • Online");
-    compact(profile);
+  test(`unmapped avatar and player utility payloads use ${mode} author links and supplied color`, () => {
     const avatar = json(render.avatarEmbed(player, mode, { color: 0x123456 }));
     assert.equal(avatar.author.name, `Player • Avatar • ${label}`);
     assert.equal(avatar.author.url, `https://osu.ppy.sh/users/42/${mode}`);
@@ -58,8 +45,7 @@ for (const [mode, label] of modes) {
     assert.equal(reach.footer.text, "Estimate from the top 100; residual PP is preserved without recalculating bonus PP.");
     compact(reach);
     for (const embed of [avatar, bws, reach]) assert.equal(embed.color, 0x123456);
-    const whatIf = render.whatIfMessage(player, { placement: 2, weightedDifference: 237.5, projectedWeightedPP: 4237.5, estimatedTotalPP: 5237.5 }, 250, mode);
-    assert.equal(whatIf, `**Player** • ${label} • What if\nHypothetical play: **250.00 pp** • Placement: **#2**\nWeighted contribution change: **+237.50 pp**\nProjected weighted PP: **4,237.50 pp** • Estimated total PP: **5,237.50 pp**\nEstimate from the top 100; bonus PP and plays outside this list are not recalculated.`);
+    assert.equal(render.whatIfMessage(player, [{ pp: 300 }, { pp: 200 }], 250), "**A score of `250.00pp` (`237.50pp` weighted) for `Player` would be their `#2` top play and increase their total to `5,047.50pp` (`+47.50`).**");
   });
 }
 
@@ -70,21 +56,10 @@ const modeJudgments = {
   mania: "MAX: 200 / 300: 100 / 200: 7 / 100: 10 / 50: 3 / Miss: 2 • MAX/300: 2.00",
 };
 for (const [mode, label] of modes) {
-  test(`recent and five-entry score lists preserve ${mode} judgments, score links and dates`, () => {
+  test(`unmapped pinned lists preserve ${mode} judgments, score links and dates`, () => {
     const score = { ...play, statistics: { ...play.statistics, perfect: 200, good: 7, large_tick_hit: 20, small_tick_hit: 30, large_tick_miss: 4, small_tick_miss: 5 } };
-    const recent = json(render.scoreEmbed(score, player, { mode, index: 1, total: 6, color: 0x123456 }));
-    assert.equal(render.recentHeader(player, mode), `Recent play for **Player** • ${label}`);
-    assert.deepEqual(recent.author, { name: "Artist - Song [Insane] • +HD • 5.10★ base", url: "https://osu.ppy.sh/beatmaps/12", icon_url: "https://a.ppy.sh/42" });
-    assert.equal(recent.description, `**A** • **250.00 pp** • **98.76%** • [Score](https://osu.ppy.sh/scores/1)\n123,456 score • 400x / 500x\n${modeJudgments[mode]}`);
-    assert.match(recent.footer.text, /^Play 2 of 6 • (?:\d+[mhd] ago|Just now)$/);
-    assert.equal(recent.timestamp, "2026-01-01T00:00:00.000Z");
-    assert.equal(recent.thumbnail.url, "https://assets.ppy.sh/cover.jpg");
-    assert.equal(recent.image, undefined);
-    assert.equal(recent.url, "https://osu.ppy.sh/scores/1");
-    assert.equal(recent.color, 0x123456);
-    compact(recent);
     const scores = Array.from({ length: 6 }, (_, i) => ({ ...score, id: i + 1 }));
-    for (const [renderer, kind] of [[render.scoreListEmbed, "Top"], [render.pinnedEmbed, "Pinned"]]) {
+    for (const [renderer, kind] of [[render.pinnedEmbed, "Pinned"]]) {
       const first = json(renderer(scores, player, { mode, color: 0x123456 }));
       const last = json(renderer(scores, player, { mode, page: 1 }));
       assert.equal(first.author.name, `Player • ${kind} plays • ${label}`);
@@ -107,62 +82,6 @@ for (const [mode, label] of modes) {
     }
   });
 }
-
-test("legacy score judgments and modern catch ticks remain distinct; mania zero denominators are explicit", () => {
-  const legacy = { ...play, mods: [{ acronym: "HD" }, "HR"], statistics: { count_geki: 200, count_300: 100, count_katu: 7, count_100: 10, count_50: 3, count_miss: 2 } };
-  for (const [mode, expected] of [
-    ["osu", "300: 100 / 100: 10 / 50: 3 / Miss: 2"],
-    ["taiko", "300: 100 / 150: 10 / Miss: 2"],
-    ["fruits", "Fruit: 100 / Drop: 10 / Tiny: 3 / Miss: 2 / Drop miss: — / Tiny miss: 7"],
-    ["mania", "MAX: 200 / 300: 100 / 200: 7 / 100: 10 / 50: 3 / Miss: 2 • MAX/300: 2.00"],
-  ]) {
-    const embed = json(render.scoreEmbed(legacy, player, { mode }));
-    assert.ok(embed.description.endsWith(expected));
-    assert.equal(embed.author.name, "Artist - Song [Insane] • +HDHR • 5.10★ base");
-  }
-  for (const [perfect, expected] of [[1, "∞"], [0, "—"]]) {
-    const embed = json(render.scoreEmbed({ ...play, statistics: { perfect, great: 0 } }, player, { mode: "mania" }));
-    assert.ok(embed.description.endsWith(`MAX/300: ${expected}`));
-    assert.doesNotMatch(embed.description, /NaN|Infinity/);
-  }
-});
-
-test("normalization boundary preserves low percentage accuracy and failed progress without inventing PP or stars", () => {
-  const score = normalizeScore({ ...play, accuracy: 0.005, passed: false, pp: null, statistics: { great: 50 }, maximum_statistics: { great: 100 }, beatmap: { id: 12 } });
-  const embed = json(render.scoreEmbed(score, player));
-  assert.equal(embed.description, "**A** • **— pp** • **0.50%** • [Score](https://osu.ppy.sh/scores/1)\n123,456 score • 400x\n300: 50 / 100: 0 / 50: 0 / Miss: 0\nFailed • 50.00% completion");
-  assert.equal(embed.author.name, "Unknown artist - Unknown map [?] • +HD • —★ base");
-  assert.doesNotMatch(JSON.stringify(embed), /FC|if FC/);
-  assert.match(json(render.scoreEmbed({ ...score, completion: null }, player)).description, /Failed • —% completion/);
-  assert.equal(json(render.scoreEmbed({ ...play, id: null }, player)).url, "https://osu.ppy.sh/beatmaps/12");
-});
-
-for (const [mode, attributes] of [
-  ["osu", "CS **4.0** • AR **9.0** • OD **8.0** • HP **6.0**"],
-  ["taiko", "OD **8.0** • HP **6.0**"],
-  ["fruits", "CS **4.0** • AR **9.0** • HP **6.0**"],
-  ["mania", "Keys **4** • OD **8.0** • HP **6.0**"],
-]) {
-  test(`map uses a mapper author, status color and ${mode} difficulty attributes`, () => {
-    const embed = json(render.beatmapEmbed({ ...map, mode }, { color: 0x123456 }));
-    assert.equal(embed.title, "Artist - Song [Insane]");
-    assert.equal(embed.url, "https://osu.ppy.sh/beatmaps/12");
-    assert.deepEqual(embed.author, { name: "Mapped by Mapper", url: "https://osu.ppy.sh/users/24" });
-    assert.equal(embed.description, "Length **2:03** • BPM **180.0** • NM\n[Beatmap](https://osu.ppy.sh/beatmaps/12) • [Download](https://osu.ppy.sh/beatmapsets/10/download) • [No video](https://osu.ppy.sh/beatmapsets/10/download?noVideo=1)");
-    assert.deepEqual(embed.fields, [{ name: "Insane • 5.10★", value: attributes, inline: false }]);
-    assert.equal(embed.thumbnail.url, "https://assets.ppy.sh/cover.jpg");
-    assert.equal(embed.image, undefined);
-    assert.equal(embed.color, 0x66bb6a);
-    assert.equal(embed.footer.text, "ranked • 99 favorites • Raw map attributes • Ranked 2024-02-03");
-  });
-}
-
-test("map status colors distinguish ranked, loved, pending, qualified and graveyard", () => {
-  for (const [status, color] of [["approved", 0x66bb6a], ["loved", 0xec6f9e], ["pending", 0xffb74d], ["wip", 0xffb74d], ["qualified", 0x42a5f5], ["graveyard", 0x78909c]]) {
-    assert.equal(json(render.beatmapEmbed({ ...map, status })).color, color);
-  }
-  assert.equal(json(render.beatmapEmbed({ status: "unknown" }, { color: 0x123456 })).color, 0x123456);
-});
 
 test("most-played lists and badges preserve player ruleset, absolute positions, links and images", () => {
   const entries = Array.from({ length: 11 }, () => ({ beatmap: map, count: 30 }));
@@ -197,9 +116,7 @@ test("BWS overrides, reach solver statuses and rank/PP targets keep results and 
   assert.match(rank.description, /unreachable within 100 plays and the 50,000 PP per-play bound/);
   assert.doesNotMatch(rank.description, /Required plays/);
   assert.match(rank.footer.text, /residual PP/);
-  const outside = render.whatIfMessage(player, { placement: null, weightedDifference: 0, projectedWeightedPP: 4000, estimatedTotalPP: 5000 }, 0);
-  assert.match(outside, /Outside top 100/);
-  assert.match(outside, /Weighted contribution change: \*\*\+0\.00 pp\*\*/);
+  assert.equal(render.whatIfMessage(player, [{ pp: 300 }], 0), "**This would not be a top play for `Player` and their total pp would not change.**");
 });
 
 test("match results remain a ranked list with MVP, teams, absolute positions and truncation caveat", () => {
@@ -275,23 +192,16 @@ function withinDiscordLimits(embeds) {
 test("missing metadata, malformed images and markdown-heavy names produce bounded valid payloads", () => {
   const emptyUser = { username: "[Name](https://example.com)\n@everyone", avatar_url: "http://[" };
   const missingScore = { accuracy: 0, mods: [{}], beatmap: {}, failed: true, completion: null };
-  const empty = [render.profileEmbed(emptyUser), render.scoreEmbed(missingScore, emptyUser), render.beatmapEmbed({}), render.avatarEmbed(emptyUser), render.checkNameEmbed({ query: "Name", status: "Unknown", reasons: [], releaseAt: "invalid" }), render.mostPlayedEmbed(emptyUser, [{ count: 0 }]), ...render.badgeEmbed(emptyUser, [{ description: "?", image_url: "javascript:alert(1)" }])];
+  const empty = [render.avatarEmbed(emptyUser), render.checkNameEmbed({ query: "Name", status: "Unknown", reasons: [], releaseAt: "invalid" }), render.mostPlayedEmbed(emptyUser, [{ count: 0 }]), ...render.badgeEmbed(emptyUser, [{ description: "?", image_url: "javascript:alert(1)" }])];
   for (const embed of empty) withinDiscordLimits([embed]);
-  assert.equal(json(empty[0]).thumbnail, undefined);
-  assert.match(json(empty[0]).description, /Country \*\*#—\*\*/);
-  assert.equal(json(empty[1]).url, undefined);
-  assert.match(json(empty[1]).description, /Judgments unavailable/);
-  assert.equal(json(empty[3]).description, "Avatar unavailable.");
-  assert.doesNotMatch(json(empty[2]).description, /https:/);
+  assert.equal(json(empty[0]).description, "Avatar unavailable.");
   const hostile = "[**`Name`**](https://example.com)\n@everyone".repeat(100);
   const longUser = { ...player, username: hostile };
   const longMap = { ...map, version: hostile, beatmapset: { ...map.beatmapset, artist: hostile, title: hostile, creator: hostile } };
   const scores = Array.from({ length: 100 }, (_, i) => ({ ...play, id: i + 1, beatmap: longMap, mods: [{ acronym: hostile }], statistics: { perfect: 1e22, great: 1e22, good: 1e22, ok: 1e22, meh: 1e22, miss: 1e22 }, total_score: 1e22, pp: 1e22, accuracy: 1e22, max_combo: 1e22 }));
   for (const [mode] of modes) {
-    withinDiscordLimits([render.scoreListEmbed(scores, longUser, { mode })]);
     withinDiscordLimits([render.pinnedEmbed(scores, longUser, { mode })]);
   }
-  withinDiscordLimits([render.profileEmbed(longUser), render.beatmapEmbed(longMap)]);
   withinDiscordLimits([render.mostPlayedEmbed(longUser, scores.map((score) => ({ ...score, count: 1e22 })))]);
   withinDiscordLimits(render.badgeEmbed(longUser, Array.from({ length: 5 }, () => ({ description: hostile, url: "https://osu.ppy.sh/tournament/1" }))));
   withinDiscordLimits([render.checkNameEmbed({ query: hostile, status: hostile, reasons: Array(10).fill(hostile) })]);
@@ -299,6 +209,6 @@ test("missing metadata, malformed images and markdown-heavy names produce bounde
   withinDiscordLimits([post]);
   assert.equal(json(post).description.match(/```/g).length, 2);
   assert.doesNotMatch(json(post).description.slice(4, -1), /\n@everyone/);
-  const escaped = json(render.scoreListEmbed([{ ...play, beatmap: { ...map, beatmapset: { ...map.beatmapset, title: "[x](bad)" } } }], player)).description;
+  const escaped = json(render.pinnedEmbed([{ ...play, beatmap: { ...map, beatmapset: { ...map.beatmapset, title: "[x](bad)" } } }], player)).description;
   assert.ok(escaped.includes("\\[x\\](bad)"));
 });

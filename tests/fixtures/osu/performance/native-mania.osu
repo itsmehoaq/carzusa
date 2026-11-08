@@ -1,0 +1,33 @@
+osu file format v14
+
+[General]
+Mode:3
+
+[Metadata]
+Title:Offline native mania
+Artist:Fixture
+Creator:Test
+Version:Native
+
+[Difficulty]
+HPDrainRate:5
+CircleSize:4
+OverallDifficulty:8
+ApproachRate:9
+SliderMultiplier:1.4
+SliderTickRate:1
+
+[TimingPoints]
+0,500,4,2,1,100,1,0
+
+[HitObjects]
+64,192,1000,128,0,1200:0:0:0:0:
+192,192,1500,128,0,1700:0:0:0:0:
+320,192,2000,128,0,2200:0:0:0:0:
+448,192,2500,128,0,2700:0:0:0:0:
+64,192,3000,128,0,3200:0:0:0:0:
+192,192,3500,128,0,3700:0:0:0:0:
+320,192,4000,128,0,4200:0:0:0:0:
+448,192,4500,128,0,4700:0:0:0:0:
+64,192,5000,128,0,5200:0:0:0:0:
+192,192,5500,128,0,5700:0:0:0:0:

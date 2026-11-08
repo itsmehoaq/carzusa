@@ -4,7 +4,7 @@ const API_URL = "https://osu.ppy.sh/api/v2";
 const TOKEN_URL = "https://osu.ppy.sh/oauth/token";
 
 function normalizeMods(mods = []) {
-  return mods.map((mod) => typeof mod === "string" ? mod : mod.acronym).filter(Boolean);
+  return Array.isArray(mods) ? mods.map((mod) => typeof mod === "string" ? mod : mod.acronym).filter(Boolean) : [];
 }
 
 function normalizeScore(score) {
@@ -28,6 +28,8 @@ function normalizeScore(score) {
   const accuracy = Number(score.accuracy) || 0;
   return {
     ...score,
+    // Keep full settings and legacy score fields available to the source calculator.
+    raw_mods: structuredClone(score.raw_mods ?? score.mods ?? []),
     id: score.id ?? score.legacy_score_id,
     total_score: score.total_score ?? score.legacy_total_score ?? score.score ?? 0,
     accuracy: Math.max(0, Math.min(100, accuracy <= 1 ? accuracy * 100 : accuracy)),

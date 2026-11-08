@@ -2,13 +2,14 @@ const api = require("./osuClient");
 const db = require("./osuDb");
 const { resolveTarget, MODES } = require("./osuTargetResolver");
 const { calculateBws } = require("./calculations/bws");
-const { calculateWhatIf } = require("./calculations/whatIf");
 const { evaluateMatchCost } = require("./calculations/matchCost");
 const { calculateReach } = require("./calculations/reach");
 const { validateUsername, calculateNameAvailability } = require("./calculations/nameAvailability");
 const { createScorepostTitle } = require("./calculations/scorepost");
 const embeds = require("./embeds");
 const pagination = require("./paginationHelper");
+const performance = require("./calculations/performance");
+const { emptyAssets } = require("./sourceDataAdapter");
 
 function parseResourceId(input, kind) {
   const value = String(input || "").trim();
@@ -47,7 +48,7 @@ function parseRankTarget(input) {
   return { rank, country: match[1] || null };
 }
 
-async function executeOsu(interaction, alias = null) {
+async function executeOsu(interaction, alias = null, presentation = {}) {
   if ((interaction.guildId ?? interaction.guild?.id) !== "723867861600174090") return;
   // This must precede option resolution, database lookups, and HTTP requests for every entry point.
   await interaction.deferReply();
@@ -55,24 +56,33 @@ async function executeOsu(interaction, alias = null) {
     const command = alias || interaction.options.getSubcommand();
     const memberColor = interaction.member?.displayColor || interaction.member?.displayHexColor;
     const display = { color: memberColor === "#000000" ? undefined : memberColor };
+    const sourceDisplay = { color: interaction.member?.displayColor ?? memberColor ?? 0,
+      discordName: interaction.user.username, discordDiscriminator: interaction.user.discriminator ?? "0", ...emptyAssets(), ...presentation };
     const string = (name) => interaction.options.getString(name);
     const integer = (name) => interaction.options.getInteger(name);
     if (command === "unlink") {
       const removed = await db.unlinkUser(interaction.user.id);
-      return interaction.editReply({ content: removed ? "Your osu! account link has been removed." : "Could not remove your link. The database is unavailable." });
+      return interaction.editReply({ content: removed ? embeds.unlinkMessage(interaction.user.username) : "Could not remove your link. The database is unavailable." });
     }
     if (command === "link") {
       const mode = string("mode") || "osu";
-      const user = await api.getUser(string("username"), mode);
+      let user;
+      try { user = await api.getUser(string("username"), mode); }
+      catch (error) {
+        if (error.response?.status !== 404) throw error;
+        return interaction.editReply({ content: embeds.missingLinkUserMessage(string("username")), allowedMentions: { parse: [] } });
+      }
+      const existing = await db.getLinkedUser(interaction.user.id);
       const linked = await db.linkUser(interaction.user.id, user.id, user.username, mode);
       return interaction.editReply({
-        content: linked ? `Linked osu! account ${user.username} (default ruleset: ${mode}).` : "Could not save your link. The database is unavailable.",
+        content: linked ? embeds.linkMessage(interaction.user.username, user.username, Boolean(existing)) : "Could not save your link. The database is unavailable.",
         allowedMentions: { parse: [] },
       });
     }
     if (command === "map") {
       const map = await api.getBeatmap(parseResourceId(string("beatmap_id_or_url"), "beatmap"));
-      return interaction.editReply({ embeds: [embeds.beatmapEmbed(map, display)] });
+      map.sourceCalculation = await performance.calculate(map);
+      return interaction.editReply(embeds.beatmapMessage(map, sourceDisplay));
     }
     if (command === "matchcost") {
       const match = await api.getMatch(parseResourceId(string("match_id_or_url"), "match"));
@@ -99,19 +109,27 @@ async function executeOsu(interaction, alias = null) {
     }
     if (command === "scorepost") {
       const resource = parseScoreResourceId(string("score_id_or_url"));
-      const score = await api.getScore(resource.id, resource.mode);
+      let score = await api.getScore(resource.id, resource.mode);
       const mode = resource.mode || score.mode || MODES[score.ruleset_id ?? score.mode_int ?? 0];
       const user = score.user || await api.getUser(score.user_id, mode);
-      if (score.beatmap?.id && (!score.beatmap.max_combo || !score.beatmapset && !score.beatmap.beatmapset)) {
-        const map = await api.getBeatmap(score.beatmap.id);
-        score.beatmap = { ...map, ...score.beatmap, max_combo: score.beatmap.max_combo ?? map.max_combo };
+      if (score.beatmap?.id || score.beatmap_id) {
+        // Score responses can omit calculation attributes even when combo/set exist.
+        const map = await api.getBeatmap(score.beatmap?.id ?? score.beatmap_id);
+        score.beatmap = { ...score.beatmap, ...map };
       }
+      score = await performance.enrichScore(score, score.beatmap, mode, { effectivePP: true });
       return interaction.editReply({ embeds: [embeds.scorepostEmbed(score, user, createScorepostTitle(score, user), { ...display, mode })] });
     }
 
     const { target, mode } = await resolveTarget(interaction, string("username"), string("mode"));
-    const user = await api.getUser(target, mode);
-    if (command === "profile") return interaction.editReply({ embeds: [embeds.profileEmbed(user, mode, display)] });
+    let user;
+    try { user = await api.getUser(target, mode); }
+    catch (error) {
+      if (error.response?.status !== 404 || !["profile", "recent", "top", "whatif"].includes(command)) throw error;
+      const content = embeds.sourceErrorMessage(command, target, mode);
+      return interaction.editReply({ content, allowedMentions: { parse: [] } });
+    }
+    if (command === "profile") return interaction.editReply({ embeds: [embeds.profileEmbed(user, mode, sourceDisplay)] });
     if (command === "avatar") return interaction.editReply({ embeds: [embeds.avatarEmbed(user, mode, display)] });
     if (command === "mostplayed" || command === "badge") {
       const entries = command === "mostplayed" ? await api.getUserMostPlayed(user.id) : user.badges || [];
@@ -160,33 +178,62 @@ async function executeOsu(interaction, alias = null) {
     if (command === "whatif") {
       const newPP = interaction.options.getNumber("pp", true);
       const scores = await api.getUserTopScores(user.id, mode);
-      const result = calculateWhatIf(scores, newPP, user.statistics?.pp ?? 0);
-      return interaction.editReply({ content: embeds.whatIfMessage(user, result, newPP, mode), allowedMentions: { parse: [] } });
+      return interaction.editReply({ content: embeds.whatIfMessage(user, scores, newPP, mode), allowedMentions: { parse: [] } });
     }
-    if (["recent", "top", "pinned"].includes(command)) {
+    if (command === "recent" || command === "top") {
       const scores = command === "recent"
         ? await api.getUserRecentScores(user.id, mode, interaction.options.getBoolean("include_fails") ?? true)
-        : command === "pinned" ? await api.getUserPinnedScores(user.id, mode) : await api.getUserTopScores(user.id, mode);
+        : await api.getUserTopScores(user.id, mode);
+      if (!scores.length) return interaction.editReply({ content: embeds.sourceErrorMessage(command, user.username, mode, true) });
+      const requested = integer("index");
+      const index = (requested ?? 1) - 1;
+      if (index < 0 || index >= scores.length) return interaction.editReply({ content: `Choose an index between 1 and ${scores.length}.` });
+      if (command === "recent") {
+        const score = scores[index];
+        // The original recent builder fetches the full map, rather than using
+        // the compact map in the score response (notably its combo denominator).
+        const map = await api.getBeatmap(score.beatmap_id ?? score.beatmap?.id);
+        const enriched = await performance.enrichScore(score, map, mode);
+        return interaction.editReply({
+          content: embeds.recentHeader(user, mode),
+          embeds: [embeds.scoreEmbed({ ...enriched, beatmap: map,
+            beatmapset: map.beatmapset || score.beatmapset }, user, { ...sourceDisplay, mode,
+            attemptNum: embeds.attemptNumber(scores, score.beatmap_id ?? score.beatmap?.id) })],
+          allowedMentions: { parse: [] },
+        });
+      }
+      const selectedScores = requested == null ? scores.slice(0, 5) : [{ ...scores[index], play_idx: index + 1 }];
+      const beatmaps = new Map();
+      const selected = await Promise.all(selectedScores.map(async score => {
+        const id = score.beatmap_id ?? score.beatmap?.id;
+        if (!beatmaps.has(id)) beatmaps.set(id, api.getBeatmap(id));
+        return performance.enrichScore(score, await beatmaps.get(id), mode);
+      }));
+      const header = `${requested == null ? "Top" : "Number"} ${requested ?? selected.length} ${require("./sourceDataAdapter").modeText(mode)} Play${selected.length === 1 ? "" : "s"} for ${user.username}`;
+      return interaction.editReply({ content: "", embeds: [embeds.scoreListEmbed(selected, user, { ...sourceDisplay, mode,
+        header, pageInfo: [1, requested == null ? Math.ceil(scores.length / 5) : 1] })], allowedMentions: { parse: [] } });
+    }
+    if (command === "pinned") {
+      const scores = await api.getUserPinnedScores(user.id, mode);
       if (!scores.length) return interaction.editReply({ content: `No ${command} scores found for this player in ${mode}.` });
       const index = (integer("index") ?? 1) - 1;
       if (index < 0 || index >= scores.length) return interaction.editReply({ content: `Choose an index between 1 and ${scores.length}.` });
-      // Fetch missing object counts only when needed to compute a failed play's completion.
       const beatmaps = new Map();
-      const enriched = await Promise.all(scores.map(async (score) => {
-        if (!score.failed || score.completion !== null || !score.beatmap?.id) return score;
-        const id = score.beatmap.id;
-        if (!beatmaps.has(id)) beatmaps.set(id, api.getBeatmap(id));
-        const map = await beatmaps.get(id);
-        return { ...score, completion: api.normalizeScore({ ...score, beatmap: { ...map, ...score.beatmap } }).completion };
-      }));
-      const pages = command === "recent"
-        ? enriched.map((score, page) => ({
-          content: embeds.recentHeader(user, mode),
-          embeds: [embeds.scoreEmbed(score, user, { ...display, mode, index: page, total: scores.length })],
-        }))
-        : Array.from({ length: Math.ceil(enriched.length / 5) }, (_, page) =>
-          (command === "pinned" ? embeds.pinnedEmbed : embeds.scoreListEmbed)(enriched, user, { ...display, mode, page }));
-      return await pagination.paginate(interaction, pages, command === "recent" ? index : Math.floor(index / 5));
+      const enriched = scores.slice();
+      const pages = Array.from({ length: Math.ceil(scores.length / 5) }, (_, page) => async () => {
+        const start = page * 5;
+        await Promise.all(scores.slice(start, start + 5).map(async (score, offset) => {
+          const id = score.beatmap_id ?? score.beatmap?.id;
+          if (!beatmaps.has(id)) {
+            const pending = api.getBeatmap(id).catch(error => { beatmaps.delete(id); throw error; });
+            beatmaps.set(id, pending);
+          }
+          const map = await beatmaps.get(id);
+          enriched[start + offset] = await performance.enrichScore(score, map, mode, { effectivePP: true });
+        }));
+        return embeds.pinnedEmbed(enriched, user, { ...display, mode, page });
+      });
+      return await pagination.paginate(interaction, pages, Math.floor(index / 5));
     }
     throw new Error("Unknown osu! subcommand.");
   } catch (error) {

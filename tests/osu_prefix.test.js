@@ -24,6 +24,7 @@ const sampleUser = {
 };
 
 const sampleMap = {
+  status: "ranked",
   id: 12,
   cs: 4,
   ar: 9,
@@ -55,6 +56,23 @@ const samplePlay = {
   failed: false,
   ended_at: "2026-01-01T00:00:00Z",
 };
+
+// Template-only injected assets/calculation, not production numeric or asset proof.
+const render = require("../utils/osu/embeds");
+const template = require("./fixtures/osuPresentation/contracts.json")[0];
+sampleMap.sourceCalculation = { ...template.calculation, title: "Song", artist: "Artist", creator: "Mapper", version: "Insane" };
+samplePlay.sourceCalculation = sampleMap.sourceCalculation;
+function injectTemplateAssets(t) {
+  const performance = require("../utils/osu/calculations/performance");
+  t.mock.method(performance, "calculate", async () => structuredClone(sampleMap.sourceCalculation));
+  t.mock.method(performance, "enrichScore", async (score, beatmap) => ({ ...score, beatmap, sourceCalculation: structuredClone(sampleMap.sourceCalculation) }));
+  for (const name of ["scoreEmbed", "scoreListEmbed", "beatmapEmbed", "beatmapMessage"]) {
+    const original = render[name];
+    t.mock.method(render, name, (value, userOrOptions, options) => name.startsWith("beatmap")
+      ? original(value, { ...template.options, ...userOrOptions, rankEmotes: template.options.rankEmotes, diffEmotes: template.options.diffEmotes })
+      : original(value, userOrOptions, { ...template.options, ...options, rankEmotes: template.options.rankEmotes, diffEmotes: template.options.diffEmotes }));
+  }
+}
 
 test("prefixParser rejects non-commands, blockquotes, mentions, and custom emojis", () => {
   assert.equal(parsePrefixCommand(""), null);
@@ -237,6 +255,7 @@ test("messageInteractionAdapter provides duck-typed interaction methods", async 
 });
 
 test("osuPrefix event executes commands end-to-end and replies without ping", async (t) => {
+  injectTemplateAssets(t);
   t.mock.method(api, "getUser", async () => sampleUser);
   t.mock.method(api, "getUserRecentScores", async () => [samplePlay]);
   t.mock.method(api, "getBeatmap", async () => sampleMap);
@@ -397,7 +416,8 @@ test("both command prefixes preserve aliases and ruleset defaults across all dis
   }
 });
 
-test("both prefixes execute all 18 shared displays with linked ruleset and member color", async (t) => {
+test("both prefixes route mapped template contracts and unchanged unmapped displays", async (t) => {
+  injectTemplateAssets(t);
   t.mock.method(api, "getUser", async (target) => target === "Target"
     ? { ...sampleUser, id: 99, username: "Target", statistics: { pp: 6000 } } : sampleUser);
   t.mock.method(api, "getUserByUsername", async () => sampleUser);
@@ -414,10 +434,10 @@ test("both prefixes execute all 18 shared displays with linked ruleset and membe
   t.mock.method(db, "linkUser", async () => true);
   t.mock.method(db, "unlinkUser", async () => true);
   const cases = [
-    ["osu", "Player • osu!mania"], ["rs", "Artist - Song [Insane]"], ["top 6", "Player • Top plays • osu!mania"],
-    ["map 12", "Mapped by Mapper"], ["whatif 250", null, /Estimated total PP/],
+    ["osu", "osu! Mania Profile for Player"], ["rs", "Song [Insane][4k] "], ["top 6", "Number 6 osu! Mania Play for Player"],
+    ["map 12", "Artist – Song by Mapper"], ["whatif 250", null, /would be their `#1` top play/],
     ["bws", "Player • Badge-weighted seeding • osu!mania"], ["matchcost 1", "Match"],
-    ["link Player mania", null, /Linked osu! account Player \(default ruleset: mania\)/], ["unlink", null, /link has been removed/],
+    ["link Player mania", null, /your `Bancho` username has been edited to `Player`/], ["unlink", null, /your `Bancho` username has been removed/],
     ["avatar", "Player • Avatar • osu!mania"], ["pinned 6", "Player • Pinned plays • osu!mania"],
     ["mp", "Player • Most played • osu!mania"], ["cn Player", "Player • Username availability • osu!"],
     ["badges", "Player • Profile badges • osu!mania"], ["reach Target", "Player • Reach • osu!mania"],
@@ -442,18 +462,20 @@ test("both prefixes execute all 18 shared displays with linked ruleset and membe
       } else {
         const embed = payload.embeds[0].toJSON();
         assert.ok(embed.author.name.startsWith(heading), message.content);
-        assert.equal(embed.color, 0x13579b);
+        assert.equal(embed.color, command === "map 12" ? 0x02cc37 : 0x13579b);
       }
-      if (["top 6", "pinned 6"].includes(command)) {
+      if (command === "pinned 6") {
         assert.match(payload.embeds[0].toJSON().description, /^\*\*6\.\*\*/);
         assert.match(payload.embeds[0].toJSON().footer.text, /Page 2\/2/);
       }
+      if (command === "top 6") {
+        assert.equal(payload.embeds[0].toJSON().footer.text, "On osu! Bancho Server | Page 1 of 1");
+        assert.equal(payload.components, undefined);
+      }
       if (command === "rs") {
-        assert.equal(payload.content, "Recent play for **Player** • osu!mania");
-        const button = { user: message.author, customId: "osu:next", update: t.mock.fn(async () => {}) };
-        collector.emit("collect", button);
-        await new Promise((resolve) => setImmediate(resolve));
-        assert.equal(button.update.mock.calls[0].arguments[0].content, payload.content);
+        assert.equal(payload.content, "**Recent osu! Mania Play for Player:**");
+        assert.equal(payload.components, undefined);
+        assert.equal(payload.embeds[0].toJSON().timestamp, undefined);
       }
     }
   }

@@ -1,0 +1,1870 @@
+[
+  {
+    "name": "mode0-mods512",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 0,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 512,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode0-mods16416",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 0,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 16416,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode0-mods536870912",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 0,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 536870912,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode0-combo-zero",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 0,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 0,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode0-mapcombo-null",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": null,
+        "mode": 0,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode0-mapcombo-zero",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 0,
+        "mode": 0,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode0-zero-judgments-fail",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 0,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 0,
+          "count_100": 0,
+          "count_50": 0,
+          "count_miss": 0,
+          "count_geki": 0,
+          "count_katu": 0,
+          "max_combo": 0,
+          "rank": "F",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode0-customaccs",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 0,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      },
+      "accs": [
+        91,
+        97
+      ]
+    }
+  },
+  {
+    "name": "mode1-mods512",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 1,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 512,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode1-mods16416",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 1,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 16416,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode1-mods536870912",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 1,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 536870912,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode1-combo-zero",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 1,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 0,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode1-mapcombo-null",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": null,
+        "mode": 1,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode1-mapcombo-zero",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 0,
+        "mode": 1,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode1-zero-judgments-fail",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 1,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 0,
+          "count_100": 0,
+          "count_50": 0,
+          "count_miss": 0,
+          "count_geki": 0,
+          "count_katu": 0,
+          "max_combo": 0,
+          "rank": "F",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode1-customaccs",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 1,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      },
+      "accs": [
+        91,
+        97
+      ]
+    }
+  },
+  {
+    "name": "mode2-mods512",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 2,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 512,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode2-mods16416",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 2,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 16416,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode2-mods536870912",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 2,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 536870912,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode2-combo-zero",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 2,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 0,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode2-mapcombo-null",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": null,
+        "mode": 2,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode2-mapcombo-zero",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 0,
+        "mode": 2,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode2-zero-judgments-fail",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 2,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 0,
+          "count_100": 0,
+          "count_50": 0,
+          "count_miss": 0,
+          "count_geki": 0,
+          "count_katu": 0,
+          "max_combo": 0,
+          "rank": "F",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode2-customaccs",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 2,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      },
+      "accs": [
+        91,
+        97
+      ]
+    }
+  },
+  {
+    "name": "mode3-mods512",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 512,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode3-mods16416",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 16416,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode3-mods536870912",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 536870912,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode3-combo-zero",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 0,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode3-mapcombo-null",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": null,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode3-mapcombo-zero",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 0,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode3-zero-judgments-fail",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 0,
+          "count_100": 0,
+          "count_50": 0,
+          "count_miss": 0,
+          "count_geki": 0,
+          "count_katu": 0,
+          "max_combo": 0,
+          "rank": "F",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mode3-customaccs",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      },
+      "accs": [
+        91,
+        97
+      ]
+    }
+  },
+  {
+    "name": "native-taiko",
+    "rawFile": "native-taiko.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 10,
+        "count_sliders": 0,
+        "count_spinners": 0,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 10,
+        "mode": 1,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 5,
+          "count_100": 1,
+          "count_50": 0,
+          "count_miss": 1,
+          "count_geki": 2,
+          "count_katu": 1,
+          "max_combo": 5,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "native-catch",
+    "rawFile": "native-catch.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 10,
+        "count_sliders": 0,
+        "count_spinners": 0,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 10,
+        "mode": 2,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 5,
+          "count_100": 1,
+          "count_50": 0,
+          "count_miss": 1,
+          "count_geki": 2,
+          "count_katu": 1,
+          "max_combo": 5,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "native-mania",
+    "rawFile": "native-mania.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 10,
+        "count_sliders": 0,
+        "count_spinners": 0,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 20,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 5,
+          "count_100": 1,
+          "count_50": 0,
+          "count_miss": 1,
+          "count_geki": 2,
+          "count_katu": 1,
+          "max_combo": 5,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  },
+  {
+    "name": "mania-score-0",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 0
+        }
+      }
+    }
+  },
+  {
+    "name": "mania-score-500000",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 500000
+        }
+      }
+    }
+  },
+  {
+    "name": "mania-score-500001",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 500001
+        }
+      }
+    }
+  },
+  {
+    "name": "mania-score-600000",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 600000
+        }
+      }
+    }
+  },
+  {
+    "name": "mania-score-600001",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 600001
+        }
+      }
+    }
+  },
+  {
+    "name": "mania-score-700000",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 700000
+        }
+      }
+    }
+  },
+  {
+    "name": "mania-score-700001",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 700001
+        }
+      }
+    }
+  },
+  {
+    "name": "mania-score-800000",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 800000
+        }
+      }
+    }
+  },
+  {
+    "name": "mania-score-800001",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 800001
+        }
+      }
+    }
+  },
+  {
+    "name": "mania-score-900000",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 900000
+        }
+      }
+    }
+  },
+  {
+    "name": "mania-score-900001",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 900001
+        }
+      }
+    }
+  },
+  {
+    "name": "mania-score-960000",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 960000
+        }
+      }
+    }
+  },
+  {
+    "name": "mania-score-1000000",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 1000000
+        }
+      }
+    }
+  },
+  {
+    "name": "mania-score-None",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 3,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": null
+        }
+      }
+    }
+  },
+  {
+    "name": "catch-explicit-modded-metadata",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 9.4,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 4.0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 5.0,
+        "max_combo": 464,
+        "mode": 2,
+        "od": 9.2,
+        "total_length": 90
+      },
+      "mods": 16,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        },
+        "beatmap_mod": {
+          "ar": 10,
+          "beatmap_id": "2469345",
+          "bpm": 180,
+          "count_circles": 209,
+          "count_sliders": 126,
+          "count_spinners": 2,
+          "cs": 4.0,
+          "difficulty_rating": 8,
+          "hit_length": 80,
+          "hp": 5.0,
+          "max_combo": 464,
+          "mode": 2,
+          "od": 9.2,
+          "total_length": 90
+        }
+      }
+    }
+  },
+  {
+    "name": "standard-metadata-overwrites-parsed",
+    "rawFile": "2469345.osu",
+    "request": {
+      "map": {
+        "ar": 0,
+        "beatmap_id": "2469345",
+        "bpm": 180,
+        "count_circles": 209,
+        "count_sliders": 126,
+        "count_spinners": 2,
+        "cs": 0,
+        "difficulty_rating": 6.5,
+        "hit_length": 80,
+        "hp": 0,
+        "max_combo": 0,
+        "mode": 0,
+        "od": 0,
+        "total_length": 90
+      },
+      "mods": 0,
+      "extra": {
+        "play_info": {
+          "count_300": 280,
+          "count_100": 10,
+          "count_50": 2,
+          "count_miss": 3,
+          "count_geki": 4,
+          "count_katu": 1,
+          "max_combo": 250,
+          "rank": "A",
+          "score": 975000
+        }
+      }
+    }
+  }
+]

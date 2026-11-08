@@ -1,0 +1,23 @@
+{
+  "sourceRevision": "f7651f3",
+  "engineRevision": "6e01fb63aee804c88ba29c2af206800aea5232b4",
+  "engineVersion": "pyttanko 2.1.0",
+  "historicalEngineVersion": "The original bot did not pin its historical engine version; this port uses its source-linked engine at the recorded revision.",
+  "functions": {
+    "get_std_data": "9032131456c9d6afc0c34bb559d284863e1b1486dd20337272eac95a8b3b2d53",
+    "get_taiko_data": "3fe816f0a094ca2b1b9235380c2a0e6db0ae2c396ff9cd9ed20ae900fc9b8256",
+    "_get_taiko_pp": "1dfea1fa85efa49c3fefbf914c3fff284327d816d124b48bd45b3c50149c4ca1",
+    "_scale_od": "b9c5eedda2bafd36ebb703ba084431b4f9925011202a1b6dcfe4d325667ce36a",
+    "_get_hit_window": "58cf3bdd348fb3d05acc19da46a7115de4771cf5b9e554f57f1f4ac18d7c9107",
+    "get_ctb_data": "dab4dca7968c7eea0dd836b115615a24821484c218edd48d3b246278dacb8c21",
+    "_get_ctb_pp": "c9d2ab774174c3bcbe2ed2a343def12df7f25b475f1312d1d8784e00fbd33cec",
+    "get_mania_data": "4840561b8d036c44ce6339995a72e4e5dbb02cb6c17bfa30bcf89bfb365f89fe",
+    "_get_mania_pp": "b221abc586cccff55c1c3d5a23be50081fb3f5d2c4f4196c599858485234fd72",
+    "time_mod": "6d29ab0479f1d5075f798091430c1b0647a33a962a791651eb74474a97568296",
+    "calculate_acc": "1d2affcdd20e4d9e3090c042bbfb52e40fa3a2fd647dab24ee69c909fa5fe4d8",
+    "num_to_mod": "dccae08ce1176d9312a347e68aec051420c9a24fa8c5287e369f6ff0fb821109",
+    "mod_to_num": "621a03d1ea6725aea24ece90f7c1f8125307e95f3709bcf44a39c27858601e61"
+  },
+  "engineSHA256": "f5edb8dc86b59afc81aa1bd867b9873bded8e0df339d0ca2ada88da58b0250be",
+  "rawSHA256": "29b804f11a009108180d60edc49864056dd35a71e3079e184d226803dcf633a1"
+}

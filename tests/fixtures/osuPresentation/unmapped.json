@@ -1,0 +1,3249 @@
+{
+  "revision": "6c8f094edf3d5c5dc23396a57019cb6e39c96e53",
+  "cases": [
+    {
+      "name": "bwsEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "rank": 1000,
+          "bwsRank": 900,
+          "badgeCount": 2,
+          "adjustment": 10
+        },
+        "osu",
+        false,
+        {
+          "mode": "osu",
+          "color": 1193046
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Badge-weighted seeding • osu!",
+          "url": "https://osu.ppy.sh/users/42/osu",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "Rank **#1,000** → BWS **#900**\nTournament badges: **2** • Adjustment **10.00%**",
+        "footer": {
+          "text": "Tournament badge detection may be inaccurate."
+        }
+      }
+    },
+    {
+      "name": "avatarEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        "osu",
+        {
+          "mode": "osu",
+          "color": 1193046
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Avatar • osu!",
+          "url": "https://osu.ppy.sh/users/42/osu",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "image": {
+          "url": "https://a.ppy.sh/42"
+        }
+      }
+    },
+    {
+      "name": "pinnedEmbed",
+      "args": [
+        [
+          {
+            "id": 1,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 2,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 3,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 4,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 5,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 6,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 7,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          }
+        ],
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "mode": "osu",
+          "color": 1193046,
+          "page": 1
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Pinned plays • osu!",
+          "url": "https://osu.ppy.sh/users/42/osu",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "thumbnail": {
+          "url": "https://a.ppy.sh/42"
+        },
+        "description": "**6.** [Artist - Song \\[Insane\\]](https://osu.ppy.sh/beatmaps/12) • +HD • 5.10★ base\n**A** • **250.00 pp** • **98.76%** • [Score](https://osu.ppy.sh/scores/6)\n123,456 score • 400x / 500x\n300: 100 / 100: 10 / 50: 3 / Miss: 2\nPlayed <t:1767225600:R>\n\n**7.** [Artist - Song \\[Insane\\]](https://osu.ppy.sh/beatmaps/12) • +HD • 5.10★ base\n**A** • **250.00 pp** • **98.76%** • [Score](https://osu.ppy.sh/scores/7)\n123,456 score • 400x / 500x\n300: 100 / 100: 10 / 50: 3 / Miss: 2\nPlayed <t:1767225600:R>",
+        "footer": {
+          "text": "Pinned plays • Page 2/2 • 7 scores"
+        }
+      }
+    },
+    {
+      "name": "mostPlayedEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        [
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          }
+        ],
+        1,
+        2,
+        {
+          "mode": "osu",
+          "color": 1193046
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Most played • osu!",
+          "url": "https://osu.ppy.sh/users/42/osu",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "thumbnail": {
+          "url": "https://a.ppy.sh/42"
+        },
+        "description": "**11.** [Artist - Song \\[Insane\\]](https://osu.ppy.sh/beatmaps/12)\n30 plays • 5.10★ • [Download](https://osu.ppy.sh/beatmapsets/10/download)",
+        "footer": {
+          "text": "Most played • Page 2/2"
+        }
+      }
+    },
+    {
+      "name": "badgeEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        [
+          {
+            "description": "Winner",
+            "url": "https://osu.ppy.sh/community/tournaments/1",
+            "image_url": "/badge.png",
+            "awarded_at": "2020-01-01"
+          }
+        ],
+        0,
+        1,
+        {
+          "mode": "osu",
+          "color": 1193046
+        }
+      ],
+      "expected": [
+        {
+          "color": 1193046,
+          "author": {
+            "name": "Player • Profile badges • osu!",
+            "url": "https://osu.ppy.sh/users/42/osu",
+            "icon_url": "https://a.ppy.sh/42"
+          },
+          "description": "**[Winner](https://osu.ppy.sh/community/tournaments/1)**\nAwarded <t:1577836800:f>",
+          "footer": {
+            "text": "Profile badges • Page 1/1"
+          },
+          "image": {
+            "url": "https://osu.ppy.sh/badge.png"
+          }
+        }
+      ]
+    },
+    {
+      "name": "reachEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "targetPP": 6000,
+          "numPlays": 2,
+          "eachPP": 500,
+          "projectedTotal": 6001
+        },
+        "osu",
+        {
+          "id": 99,
+          "username": "Target"
+        },
+        {
+          "mode": "osu",
+          "color": 1193046,
+          "kind": "Reach"
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Reach • osu!",
+          "url": "https://osu.ppy.sh/users/42/osu",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "Target player: [Target](https://osu.ppy.sh/users/99/osu)\nTarget PP: **6,000.00 pp**\nRequired plays: **2** • PP per play: **500.00 pp**\nProjected total: **6,001.00 pp**",
+        "footer": {
+          "text": "Estimate from the top 100; residual PP is preserved without recalculating bonus PP."
+        }
+      }
+    },
+    {
+      "name": "reachEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "targetPP": 6000,
+          "numPlays": 2,
+          "eachPP": 500,
+          "projectedTotal": 6001
+        },
+        "osu",
+        {
+          "id": 99,
+          "username": "Target"
+        },
+        {
+          "mode": "osu",
+          "color": 1193046,
+          "kind": "Rank target"
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Rank target • osu!",
+          "url": "https://osu.ppy.sh/users/42/osu",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "Target player: [Target](https://osu.ppy.sh/users/99/osu)\nTarget PP: **6,000.00 pp**\nRequired plays: **2** • PP per play: **500.00 pp**\nProjected total: **6,001.00 pp**",
+        "footer": {
+          "text": "Estimate from the top 100; residual PP is preserved without recalculating bonus PP."
+        }
+      }
+    },
+    {
+      "name": "reachEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "targetPP": 6000,
+          "numPlays": 2,
+          "eachPP": 500,
+          "projectedTotal": 6001
+        },
+        "osu",
+        {
+          "id": 99,
+          "username": "Target"
+        },
+        {
+          "mode": "osu",
+          "color": 1193046,
+          "kind": "PP target"
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • PP target • osu!",
+          "url": "https://osu.ppy.sh/users/42/osu",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "Target player: [Target](https://osu.ppy.sh/users/99/osu)\nTarget PP: **6,000.00 pp**\nRequired plays: **2** • PP per play: **500.00 pp**\nProjected total: **6,001.00 pp**",
+        "footer": {
+          "text": "Estimate from the top 100; residual PP is preserved without recalculating bonus PP."
+        }
+      }
+    },
+    {
+      "name": "scorepostEmbed",
+      "args": [
+        {
+          "id": 1,
+          "total_score": 123456,
+          "accuracy": 98.76,
+          "max_combo": 400,
+          "mods": [
+            "HD"
+          ],
+          "rank": "A",
+          "pp": 250,
+          "statistics": {
+            "great": 100,
+            "ok": 10,
+            "meh": 3,
+            "miss": 2,
+            "perfect": 200,
+            "good": 7
+          },
+          "beatmap": {
+            "id": 12,
+            "cs": 4,
+            "difficulty_rating": 5.1,
+            "max_combo": 500,
+            "version": "Insane",
+            "beatmapset": {
+              "id": 10,
+              "artist": "Artist",
+              "title": "Song",
+              "covers": {
+                "cover": "https://assets.ppy.sh/cover.jpg"
+              }
+            }
+          },
+          "ended_at": "2026-01-01T00:00:00Z"
+        },
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        "Copyable title",
+        {
+          "mode": "osu",
+          "color": 1193046
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Scorepost • osu!",
+          "url": "https://osu.ppy.sh/users/42/osu",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "```\nCopyable title\n```\n**A** • 123,456 score • [Score](https://osu.ppy.sh/scores/1)\n300: 100 / 100: 10 / 50: 3 / Miss: 2\nPlayed <t:1767225600:f>",
+        "thumbnail": {
+          "url": "https://assets.ppy.sh/cover.jpg"
+        }
+      }
+    },
+    {
+      "name": "bwsEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "rank": 1000,
+          "bwsRank": 900,
+          "badgeCount": 2,
+          "adjustment": 10
+        },
+        "taiko",
+        false,
+        {
+          "mode": "taiko",
+          "color": 1193046
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Badge-weighted seeding • osu!taiko",
+          "url": "https://osu.ppy.sh/users/42/taiko",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "Rank **#1,000** → BWS **#900**\nTournament badges: **2** • Adjustment **10.00%**",
+        "footer": {
+          "text": "Tournament badge detection may be inaccurate."
+        }
+      }
+    },
+    {
+      "name": "avatarEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        "taiko",
+        {
+          "mode": "taiko",
+          "color": 1193046
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Avatar • osu!taiko",
+          "url": "https://osu.ppy.sh/users/42/taiko",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "image": {
+          "url": "https://a.ppy.sh/42"
+        }
+      }
+    },
+    {
+      "name": "pinnedEmbed",
+      "args": [
+        [
+          {
+            "id": 1,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 2,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 3,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 4,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 5,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 6,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 7,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          }
+        ],
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "mode": "taiko",
+          "color": 1193046,
+          "page": 1
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Pinned plays • osu!taiko",
+          "url": "https://osu.ppy.sh/users/42/taiko",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "thumbnail": {
+          "url": "https://a.ppy.sh/42"
+        },
+        "description": "**6.** [Artist - Song \\[Insane\\]](https://osu.ppy.sh/beatmaps/12) • +HD • 5.10★ base\n**A** • **250.00 pp** • **98.76%** • [Score](https://osu.ppy.sh/scores/6)\n123,456 score • 400x / 500x\n300: 100 / 150: 10 / Miss: 2\nPlayed <t:1767225600:R>\n\n**7.** [Artist - Song \\[Insane\\]](https://osu.ppy.sh/beatmaps/12) • +HD • 5.10★ base\n**A** • **250.00 pp** • **98.76%** • [Score](https://osu.ppy.sh/scores/7)\n123,456 score • 400x / 500x\n300: 100 / 150: 10 / Miss: 2\nPlayed <t:1767225600:R>",
+        "footer": {
+          "text": "Pinned plays • Page 2/2 • 7 scores"
+        }
+      }
+    },
+    {
+      "name": "mostPlayedEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        [
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          }
+        ],
+        1,
+        2,
+        {
+          "mode": "taiko",
+          "color": 1193046
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Most played • osu!taiko",
+          "url": "https://osu.ppy.sh/users/42/taiko",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "thumbnail": {
+          "url": "https://a.ppy.sh/42"
+        },
+        "description": "**11.** [Artist - Song \\[Insane\\]](https://osu.ppy.sh/beatmaps/12)\n30 plays • 5.10★ • [Download](https://osu.ppy.sh/beatmapsets/10/download)",
+        "footer": {
+          "text": "Most played • Page 2/2"
+        }
+      }
+    },
+    {
+      "name": "badgeEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        [
+          {
+            "description": "Winner",
+            "url": "https://osu.ppy.sh/community/tournaments/1",
+            "image_url": "/badge.png",
+            "awarded_at": "2020-01-01"
+          }
+        ],
+        0,
+        1,
+        {
+          "mode": "taiko",
+          "color": 1193046
+        }
+      ],
+      "expected": [
+        {
+          "color": 1193046,
+          "author": {
+            "name": "Player • Profile badges • osu!taiko",
+            "url": "https://osu.ppy.sh/users/42/taiko",
+            "icon_url": "https://a.ppy.sh/42"
+          },
+          "description": "**[Winner](https://osu.ppy.sh/community/tournaments/1)**\nAwarded <t:1577836800:f>",
+          "footer": {
+            "text": "Profile badges • Page 1/1"
+          },
+          "image": {
+            "url": "https://osu.ppy.sh/badge.png"
+          }
+        }
+      ]
+    },
+    {
+      "name": "reachEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "targetPP": 6000,
+          "numPlays": 2,
+          "eachPP": 500,
+          "projectedTotal": 6001
+        },
+        "taiko",
+        {
+          "id": 99,
+          "username": "Target"
+        },
+        {
+          "mode": "taiko",
+          "color": 1193046,
+          "kind": "Reach"
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Reach • osu!taiko",
+          "url": "https://osu.ppy.sh/users/42/taiko",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "Target player: [Target](https://osu.ppy.sh/users/99/taiko)\nTarget PP: **6,000.00 pp**\nRequired plays: **2** • PP per play: **500.00 pp**\nProjected total: **6,001.00 pp**",
+        "footer": {
+          "text": "Estimate from the top 100; residual PP is preserved without recalculating bonus PP."
+        }
+      }
+    },
+    {
+      "name": "reachEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "targetPP": 6000,
+          "numPlays": 2,
+          "eachPP": 500,
+          "projectedTotal": 6001
+        },
+        "taiko",
+        {
+          "id": 99,
+          "username": "Target"
+        },
+        {
+          "mode": "taiko",
+          "color": 1193046,
+          "kind": "Rank target"
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Rank target • osu!taiko",
+          "url": "https://osu.ppy.sh/users/42/taiko",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "Target player: [Target](https://osu.ppy.sh/users/99/taiko)\nTarget PP: **6,000.00 pp**\nRequired plays: **2** • PP per play: **500.00 pp**\nProjected total: **6,001.00 pp**",
+        "footer": {
+          "text": "Estimate from the top 100; residual PP is preserved without recalculating bonus PP."
+        }
+      }
+    },
+    {
+      "name": "reachEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "targetPP": 6000,
+          "numPlays": 2,
+          "eachPP": 500,
+          "projectedTotal": 6001
+        },
+        "taiko",
+        {
+          "id": 99,
+          "username": "Target"
+        },
+        {
+          "mode": "taiko",
+          "color": 1193046,
+          "kind": "PP target"
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • PP target • osu!taiko",
+          "url": "https://osu.ppy.sh/users/42/taiko",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "Target player: [Target](https://osu.ppy.sh/users/99/taiko)\nTarget PP: **6,000.00 pp**\nRequired plays: **2** • PP per play: **500.00 pp**\nProjected total: **6,001.00 pp**",
+        "footer": {
+          "text": "Estimate from the top 100; residual PP is preserved without recalculating bonus PP."
+        }
+      }
+    },
+    {
+      "name": "scorepostEmbed",
+      "args": [
+        {
+          "id": 1,
+          "total_score": 123456,
+          "accuracy": 98.76,
+          "max_combo": 400,
+          "mods": [
+            "HD"
+          ],
+          "rank": "A",
+          "pp": 250,
+          "statistics": {
+            "great": 100,
+            "ok": 10,
+            "meh": 3,
+            "miss": 2,
+            "perfect": 200,
+            "good": 7
+          },
+          "beatmap": {
+            "id": 12,
+            "cs": 4,
+            "difficulty_rating": 5.1,
+            "max_combo": 500,
+            "version": "Insane",
+            "beatmapset": {
+              "id": 10,
+              "artist": "Artist",
+              "title": "Song",
+              "covers": {
+                "cover": "https://assets.ppy.sh/cover.jpg"
+              }
+            }
+          },
+          "ended_at": "2026-01-01T00:00:00Z"
+        },
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        "Copyable title",
+        {
+          "mode": "taiko",
+          "color": 1193046
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Scorepost • osu!taiko",
+          "url": "https://osu.ppy.sh/users/42/taiko",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "```\nCopyable title\n```\n**A** • 123,456 score • [Score](https://osu.ppy.sh/scores/1)\n300: 100 / 150: 10 / Miss: 2\nPlayed <t:1767225600:f>",
+        "thumbnail": {
+          "url": "https://assets.ppy.sh/cover.jpg"
+        }
+      }
+    },
+    {
+      "name": "bwsEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "rank": 1000,
+          "bwsRank": 900,
+          "badgeCount": 2,
+          "adjustment": 10
+        },
+        "fruits",
+        false,
+        {
+          "mode": "fruits",
+          "color": 1193046
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Badge-weighted seeding • osu!catch",
+          "url": "https://osu.ppy.sh/users/42/fruits",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "Rank **#1,000** → BWS **#900**\nTournament badges: **2** • Adjustment **10.00%**",
+        "footer": {
+          "text": "Tournament badge detection may be inaccurate."
+        }
+      }
+    },
+    {
+      "name": "avatarEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        "fruits",
+        {
+          "mode": "fruits",
+          "color": 1193046
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Avatar • osu!catch",
+          "url": "https://osu.ppy.sh/users/42/fruits",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "image": {
+          "url": "https://a.ppy.sh/42"
+        }
+      }
+    },
+    {
+      "name": "pinnedEmbed",
+      "args": [
+        [
+          {
+            "id": 1,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 2,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 3,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 4,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 5,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 6,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 7,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          }
+        ],
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "mode": "fruits",
+          "color": 1193046,
+          "page": 1
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Pinned plays • osu!catch",
+          "url": "https://osu.ppy.sh/users/42/fruits",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "thumbnail": {
+          "url": "https://a.ppy.sh/42"
+        },
+        "description": "**6.** [Artist - Song \\[Insane\\]](https://osu.ppy.sh/beatmaps/12) • +HD • 5.10★ base\n**A** • **250.00 pp** • **98.76%** • [Score](https://osu.ppy.sh/scores/6)\n123,456 score • 400x / 500x\nFruit: 100 / Drop: 0 / Tiny: 0 / Miss: 2 / Drop miss: 0 / Tiny miss: 0\nPlayed <t:1767225600:R>\n\n**7.** [Artist - Song \\[Insane\\]](https://osu.ppy.sh/beatmaps/12) • +HD • 5.10★ base\n**A** • **250.00 pp** • **98.76%** • [Score](https://osu.ppy.sh/scores/7)\n123,456 score • 400x / 500x\nFruit: 100 / Drop: 0 / Tiny: 0 / Miss: 2 / Drop miss: 0 / Tiny miss: 0\nPlayed <t:1767225600:R>",
+        "footer": {
+          "text": "Pinned plays • Page 2/2 • 7 scores"
+        }
+      }
+    },
+    {
+      "name": "mostPlayedEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        [
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          }
+        ],
+        1,
+        2,
+        {
+          "mode": "fruits",
+          "color": 1193046
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Most played • osu!catch",
+          "url": "https://osu.ppy.sh/users/42/fruits",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "thumbnail": {
+          "url": "https://a.ppy.sh/42"
+        },
+        "description": "**11.** [Artist - Song \\[Insane\\]](https://osu.ppy.sh/beatmaps/12)\n30 plays • 5.10★ • [Download](https://osu.ppy.sh/beatmapsets/10/download)",
+        "footer": {
+          "text": "Most played • Page 2/2"
+        }
+      }
+    },
+    {
+      "name": "badgeEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        [
+          {
+            "description": "Winner",
+            "url": "https://osu.ppy.sh/community/tournaments/1",
+            "image_url": "/badge.png",
+            "awarded_at": "2020-01-01"
+          }
+        ],
+        0,
+        1,
+        {
+          "mode": "fruits",
+          "color": 1193046
+        }
+      ],
+      "expected": [
+        {
+          "color": 1193046,
+          "author": {
+            "name": "Player • Profile badges • osu!catch",
+            "url": "https://osu.ppy.sh/users/42/fruits",
+            "icon_url": "https://a.ppy.sh/42"
+          },
+          "description": "**[Winner](https://osu.ppy.sh/community/tournaments/1)**\nAwarded <t:1577836800:f>",
+          "footer": {
+            "text": "Profile badges • Page 1/1"
+          },
+          "image": {
+            "url": "https://osu.ppy.sh/badge.png"
+          }
+        }
+      ]
+    },
+    {
+      "name": "reachEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "targetPP": 6000,
+          "numPlays": 2,
+          "eachPP": 500,
+          "projectedTotal": 6001
+        },
+        "fruits",
+        {
+          "id": 99,
+          "username": "Target"
+        },
+        {
+          "mode": "fruits",
+          "color": 1193046,
+          "kind": "Reach"
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Reach • osu!catch",
+          "url": "https://osu.ppy.sh/users/42/fruits",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "Target player: [Target](https://osu.ppy.sh/users/99/fruits)\nTarget PP: **6,000.00 pp**\nRequired plays: **2** • PP per play: **500.00 pp**\nProjected total: **6,001.00 pp**",
+        "footer": {
+          "text": "Estimate from the top 100; residual PP is preserved without recalculating bonus PP."
+        }
+      }
+    },
+    {
+      "name": "reachEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "targetPP": 6000,
+          "numPlays": 2,
+          "eachPP": 500,
+          "projectedTotal": 6001
+        },
+        "fruits",
+        {
+          "id": 99,
+          "username": "Target"
+        },
+        {
+          "mode": "fruits",
+          "color": 1193046,
+          "kind": "Rank target"
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Rank target • osu!catch",
+          "url": "https://osu.ppy.sh/users/42/fruits",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "Target player: [Target](https://osu.ppy.sh/users/99/fruits)\nTarget PP: **6,000.00 pp**\nRequired plays: **2** • PP per play: **500.00 pp**\nProjected total: **6,001.00 pp**",
+        "footer": {
+          "text": "Estimate from the top 100; residual PP is preserved without recalculating bonus PP."
+        }
+      }
+    },
+    {
+      "name": "reachEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "targetPP": 6000,
+          "numPlays": 2,
+          "eachPP": 500,
+          "projectedTotal": 6001
+        },
+        "fruits",
+        {
+          "id": 99,
+          "username": "Target"
+        },
+        {
+          "mode": "fruits",
+          "color": 1193046,
+          "kind": "PP target"
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • PP target • osu!catch",
+          "url": "https://osu.ppy.sh/users/42/fruits",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "Target player: [Target](https://osu.ppy.sh/users/99/fruits)\nTarget PP: **6,000.00 pp**\nRequired plays: **2** • PP per play: **500.00 pp**\nProjected total: **6,001.00 pp**",
+        "footer": {
+          "text": "Estimate from the top 100; residual PP is preserved without recalculating bonus PP."
+        }
+      }
+    },
+    {
+      "name": "scorepostEmbed",
+      "args": [
+        {
+          "id": 1,
+          "total_score": 123456,
+          "accuracy": 98.76,
+          "max_combo": 400,
+          "mods": [
+            "HD"
+          ],
+          "rank": "A",
+          "pp": 250,
+          "statistics": {
+            "great": 100,
+            "ok": 10,
+            "meh": 3,
+            "miss": 2,
+            "perfect": 200,
+            "good": 7
+          },
+          "beatmap": {
+            "id": 12,
+            "cs": 4,
+            "difficulty_rating": 5.1,
+            "max_combo": 500,
+            "version": "Insane",
+            "beatmapset": {
+              "id": 10,
+              "artist": "Artist",
+              "title": "Song",
+              "covers": {
+                "cover": "https://assets.ppy.sh/cover.jpg"
+              }
+            }
+          },
+          "ended_at": "2026-01-01T00:00:00Z"
+        },
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        "Copyable title",
+        {
+          "mode": "fruits",
+          "color": 1193046
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Scorepost • osu!catch",
+          "url": "https://osu.ppy.sh/users/42/fruits",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "```\nCopyable title\n```\n**A** • 123,456 score • [Score](https://osu.ppy.sh/scores/1)\nFruit: 100 / Drop: 0 / Tiny: 0 / Miss: 2 / Drop miss: 0 / Tiny miss: 0\nPlayed <t:1767225600:f>",
+        "thumbnail": {
+          "url": "https://assets.ppy.sh/cover.jpg"
+        }
+      }
+    },
+    {
+      "name": "bwsEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "rank": 1000,
+          "bwsRank": 900,
+          "badgeCount": 2,
+          "adjustment": 10
+        },
+        "mania",
+        false,
+        {
+          "mode": "mania",
+          "color": 1193046
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Badge-weighted seeding • osu!mania",
+          "url": "https://osu.ppy.sh/users/42/mania",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "Rank **#1,000** → BWS **#900**\nTournament badges: **2** • Adjustment **10.00%**",
+        "footer": {
+          "text": "Tournament badge detection may be inaccurate."
+        }
+      }
+    },
+    {
+      "name": "avatarEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        "mania",
+        {
+          "mode": "mania",
+          "color": 1193046
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Avatar • osu!mania",
+          "url": "https://osu.ppy.sh/users/42/mania",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "image": {
+          "url": "https://a.ppy.sh/42"
+        }
+      }
+    },
+    {
+      "name": "pinnedEmbed",
+      "args": [
+        [
+          {
+            "id": 1,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 2,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 3,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 4,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 5,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 6,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": 7,
+            "total_score": 123456,
+            "accuracy": 98.76,
+            "max_combo": 400,
+            "mods": [
+              "HD"
+            ],
+            "rank": "A",
+            "pp": 250,
+            "statistics": {
+              "great": 100,
+              "ok": 10,
+              "meh": 3,
+              "miss": 2,
+              "perfect": 200,
+              "good": 7
+            },
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "ended_at": "2026-01-01T00:00:00Z"
+          }
+        ],
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "mode": "mania",
+          "color": 1193046,
+          "page": 1
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Pinned plays • osu!mania",
+          "url": "https://osu.ppy.sh/users/42/mania",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "thumbnail": {
+          "url": "https://a.ppy.sh/42"
+        },
+        "description": "**6.** [Artist - Song \\[Insane\\]](https://osu.ppy.sh/beatmaps/12) • +HD • 5.10★ base\n**A** • **250.00 pp** • **98.76%** • [Score](https://osu.ppy.sh/scores/6)\n123,456 score • 400x / 500x\nMAX: 200 / 300: 100 / 200: 7 / 100: 10 / 50: 3 / Miss: 2 • MAX/300: 2.00\nPlayed <t:1767225600:R>\n\n**7.** [Artist - Song \\[Insane\\]](https://osu.ppy.sh/beatmaps/12) • +HD • 5.10★ base\n**A** • **250.00 pp** • **98.76%** • [Score](https://osu.ppy.sh/scores/7)\n123,456 score • 400x / 500x\nMAX: 200 / 300: 100 / 200: 7 / 100: 10 / 50: 3 / Miss: 2 • MAX/300: 2.00\nPlayed <t:1767225600:R>",
+        "footer": {
+          "text": "Pinned plays • Page 2/2 • 7 scores"
+        }
+      }
+    },
+    {
+      "name": "mostPlayedEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        [
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          },
+          {
+            "beatmap": {
+              "id": 12,
+              "cs": 4,
+              "difficulty_rating": 5.1,
+              "max_combo": 500,
+              "version": "Insane",
+              "beatmapset": {
+                "id": 10,
+                "artist": "Artist",
+                "title": "Song",
+                "covers": {
+                  "cover": "https://assets.ppy.sh/cover.jpg"
+                }
+              }
+            },
+            "count": 30
+          }
+        ],
+        1,
+        2,
+        {
+          "mode": "mania",
+          "color": 1193046
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Most played • osu!mania",
+          "url": "https://osu.ppy.sh/users/42/mania",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "thumbnail": {
+          "url": "https://a.ppy.sh/42"
+        },
+        "description": "**11.** [Artist - Song \\[Insane\\]](https://osu.ppy.sh/beatmaps/12)\n30 plays • 5.10★ • [Download](https://osu.ppy.sh/beatmapsets/10/download)",
+        "footer": {
+          "text": "Most played • Page 2/2"
+        }
+      }
+    },
+    {
+      "name": "badgeEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        [
+          {
+            "description": "Winner",
+            "url": "https://osu.ppy.sh/community/tournaments/1",
+            "image_url": "/badge.png",
+            "awarded_at": "2020-01-01"
+          }
+        ],
+        0,
+        1,
+        {
+          "mode": "mania",
+          "color": 1193046
+        }
+      ],
+      "expected": [
+        {
+          "color": 1193046,
+          "author": {
+            "name": "Player • Profile badges • osu!mania",
+            "url": "https://osu.ppy.sh/users/42/mania",
+            "icon_url": "https://a.ppy.sh/42"
+          },
+          "description": "**[Winner](https://osu.ppy.sh/community/tournaments/1)**\nAwarded <t:1577836800:f>",
+          "footer": {
+            "text": "Profile badges • Page 1/1"
+          },
+          "image": {
+            "url": "https://osu.ppy.sh/badge.png"
+          }
+        }
+      ]
+    },
+    {
+      "name": "reachEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "targetPP": 6000,
+          "numPlays": 2,
+          "eachPP": 500,
+          "projectedTotal": 6001
+        },
+        "mania",
+        {
+          "id": 99,
+          "username": "Target"
+        },
+        {
+          "mode": "mania",
+          "color": 1193046,
+          "kind": "Reach"
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Reach • osu!mania",
+          "url": "https://osu.ppy.sh/users/42/mania",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "Target player: [Target](https://osu.ppy.sh/users/99/mania)\nTarget PP: **6,000.00 pp**\nRequired plays: **2** • PP per play: **500.00 pp**\nProjected total: **6,001.00 pp**",
+        "footer": {
+          "text": "Estimate from the top 100; residual PP is preserved without recalculating bonus PP."
+        }
+      }
+    },
+    {
+      "name": "reachEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "targetPP": 6000,
+          "numPlays": 2,
+          "eachPP": 500,
+          "projectedTotal": 6001
+        },
+        "mania",
+        {
+          "id": 99,
+          "username": "Target"
+        },
+        {
+          "mode": "mania",
+          "color": 1193046,
+          "kind": "Rank target"
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Rank target • osu!mania",
+          "url": "https://osu.ppy.sh/users/42/mania",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "Target player: [Target](https://osu.ppy.sh/users/99/mania)\nTarget PP: **6,000.00 pp**\nRequired plays: **2** • PP per play: **500.00 pp**\nProjected total: **6,001.00 pp**",
+        "footer": {
+          "text": "Estimate from the top 100; residual PP is preserved without recalculating bonus PP."
+        }
+      }
+    },
+    {
+      "name": "reachEmbed",
+      "args": [
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        {
+          "targetPP": 6000,
+          "numPlays": 2,
+          "eachPP": 500,
+          "projectedTotal": 6001
+        },
+        "mania",
+        {
+          "id": 99,
+          "username": "Target"
+        },
+        {
+          "mode": "mania",
+          "color": 1193046,
+          "kind": "PP target"
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • PP target • osu!mania",
+          "url": "https://osu.ppy.sh/users/42/mania",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "Target player: [Target](https://osu.ppy.sh/users/99/mania)\nTarget PP: **6,000.00 pp**\nRequired plays: **2** • PP per play: **500.00 pp**\nProjected total: **6,001.00 pp**",
+        "footer": {
+          "text": "Estimate from the top 100; residual PP is preserved without recalculating bonus PP."
+        }
+      }
+    },
+    {
+      "name": "scorepostEmbed",
+      "args": [
+        {
+          "id": 1,
+          "total_score": 123456,
+          "accuracy": 98.76,
+          "max_combo": 400,
+          "mods": [
+            "HD"
+          ],
+          "rank": "A",
+          "pp": 250,
+          "statistics": {
+            "great": 100,
+            "ok": 10,
+            "meh": 3,
+            "miss": 2,
+            "perfect": 200,
+            "good": 7
+          },
+          "beatmap": {
+            "id": 12,
+            "cs": 4,
+            "difficulty_rating": 5.1,
+            "max_combo": 500,
+            "version": "Insane",
+            "beatmapset": {
+              "id": 10,
+              "artist": "Artist",
+              "title": "Song",
+              "covers": {
+                "cover": "https://assets.ppy.sh/cover.jpg"
+              }
+            }
+          },
+          "ended_at": "2026-01-01T00:00:00Z"
+        },
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        },
+        "Copyable title",
+        {
+          "mode": "mania",
+          "color": 1193046
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "Player • Scorepost • osu!mania",
+          "url": "https://osu.ppy.sh/users/42/mania",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "```\nCopyable title\n```\n**A** • 123,456 score • [Score](https://osu.ppy.sh/scores/1)\nMAX: 200 / 300: 100 / 200: 7 / 100: 10 / 50: 3 / Miss: 2 • MAX/300: 2.00\nPlayed <t:1767225600:f>",
+        "thumbnail": {
+          "url": "https://assets.ppy.sh/cover.jpg"
+        }
+      }
+    },
+    {
+      "name": "checkNameEmbed",
+      "args": [
+        {
+          "query": "OldName",
+          "status": "Occupied",
+          "reasons": [
+            "Manual restrictions may apply."
+          ],
+          "releaseAt": "2026-01-01T00:00:00Z"
+        },
+        {
+          "id": 42,
+          "username": "Player",
+          "avatar_url": "https://a.ppy.sh/42",
+          "country_code": "VN"
+        }
+      ],
+      "expected": {
+        "color": 5536667,
+        "author": {
+          "name": "OldName • Username availability • osu!",
+          "url": "https://osu.ppy.sh/users/42/osu",
+          "icon_url": "https://a.ppy.sh/42"
+        },
+        "description": "**Occupied**\nManual restrictions may apply.\nEligible for release at <t:1767225600:f> (<t:1767225600:R>)"
+      }
+    },
+    {
+      "name": "matchCostEmbed",
+      "args": [
+        {
+          "id": 77,
+          "name": "A vs B",
+          "gamesPlayed": 3,
+          "players": [
+            {
+              "username": "A",
+              "matchCost": 2.58,
+              "gamesPlayed": 2,
+              "team": "red"
+            }
+          ],
+          "teamVs": true,
+          "teamScore": {
+            "red": 2,
+            "blue": 1
+          },
+          "truncated": true
+        },
+        0,
+        15,
+        {
+          "color": 1193046
+        }
+      ],
+      "expected": {
+        "color": 1193046,
+        "author": {
+          "name": "A vs B",
+          "url": "https://osu.ppy.sh/community/matches/77"
+        },
+        "description": "**1. A** • MVP (red) — **2.58** • 2/3 maps\n\nTeam score: Red **2** — **1** Blue\n\nIncomplete history: This match exceeds the 500-event history limit. Costs cover only the retrieved events.",
+        "footer": {
+          "text": "3 evaluated maps • Match cost • Page 1/1"
+        }
+      }
+    }
+  ]
+}

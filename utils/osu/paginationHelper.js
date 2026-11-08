@@ -10,12 +10,18 @@ function controls(page, total, disabled = false) {
 async function paginate(interaction, pages, initialIndex = 0) {
   let index = Math.max(0, Math.min(pages.length - 1, initialIndex));
   if (!pages.length) return interaction.editReply({ content: "No results found.", components: [] });
-  const pagePayload = () => {
-    const page = pages[index];
-    return page.embeds ? { ...page } : { embeds: Array.isArray(page) ? page : [page] };
+  const loaded = new Map();
+  const pagePayload = async (pageIndex) => {
+    if (!loaded.has(pageIndex)) {
+      const pending = Promise.resolve().then(() => typeof pages[pageIndex] === "function" ? pages[pageIndex]() : pages[pageIndex]);
+      loaded.set(pageIndex, pending);
+      pending.catch(() => loaded.delete(pageIndex));
+    }
+    const page = await loaded.get(pageIndex);
+    return page.embeds || page.content !== undefined ? { ...page } : { embeds: Array.isArray(page) ? page : [page] };
   };
   const message = await interaction.editReply({
-    ...pagePayload(), components: pages.length > 1 ? [controls(index, pages.length)] : [],
+    ...await pagePayload(index), components: pages.length > 1 ? [controls(index, pages.length)] : [],
     allowedMentions: { parse: [] },
   });
   if (pages.length < 2) return message;
@@ -29,10 +35,24 @@ async function paginate(interaction, pages, initialIndex = 0) {
         return;
       }
       if (!["osu:prev", "osu:next"].includes(button.customId)) return;
+      // Acknowledge before waiting for queued navigation, downloads, or calculations.
+      const direction = button.customId === "osu:next" ? 1 : -1;
+      const acknowledgement = button.deferUpdate
+        ? button.deferUpdate().then(() => null, error => error) : Promise.resolve(null);
       // Keep timeout cleanup after any in-flight update, so it cannot re-enable expired buttons.
       updates = updates.then(async () => {
-        index = Math.max(0, Math.min(pages.length - 1, index + (button.customId === "osu:next" ? 1 : -1)));
-        await button.update({ ...pagePayload(), components: [controls(index, pages.length, ended)], allowedMentions: { parse: [] } });
+        const acknowledgementError = await acknowledgement;
+        if (acknowledgementError) throw acknowledgementError;
+        if (ended) return;
+        const target = Math.max(0, Math.min(pages.length - 1, index + direction));
+        const update = button.deferUpdate ? payload => interaction.editReply(payload) : payload => button.update(payload);
+        try {
+          const payload = await pagePayload(target);
+          await update({ content: "", ...payload, components: [controls(target, pages.length, ended)], allowedMentions: { parse: [] } });
+          index = target;
+        } catch (error) {
+          await update({ content: error.message, embeds: [], components: [controls(index, pages.length, ended)], allowedMentions: { parse: [] } });
+        }
       }).catch(() => {});
       await updates;
     } catch {

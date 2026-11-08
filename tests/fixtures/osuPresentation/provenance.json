@@ -1,0 +1,9 @@
+{
+  "revision": "f7651f3cb7d67ba4d93e8ffa96d7a1d3120b2bd8",
+  "sha256": {
+    "cogs/osu/osu.py": "8a57a9d9f689fd0faad83943f9c8cd3e45516a818d002ef1201afe8c68c7c9be",
+    "cogs/osu/osu_utils/utils.py": "37879c36e0507991d8025e7f34f725049e62f5f139137abc6f1e903770d2ec93",
+    "cogs/osu/osu_utils/owoAPI.py": "7f84ab47acc8002aeda776dee47d1ca3134b5beee1b543374a948d0f20fb14bf"
+  },
+  "fixtures": "Synthetic template contracts only; injected emotes and calculations are not runtime asset or numeric verification."
+}
