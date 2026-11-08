@@ -232,11 +232,26 @@ for (const [mode, label] of modes) {
   test(`scorepost is copyable text with ${mode} player author and no score grid`, () => {
     const embed = json(render.scorepostEmbed(play, player, "Player | Artist - Song [Insane] +HD 250pp", { mode, color: 0x123456 }));
     assert.equal(embed.author.name, `Player • Scorepost • ${label}`);
-    assert.equal(embed.description, "```\nPlayer | Artist - Song [Insane] +HD 250pp\n```\n[Score](https://osu.ppy.sh/scores/1)");
+    assert.ok(embed.description.startsWith("```\nPlayer | Artist - Song [Insane] +HD 250pp\n```\n"));
+    assert.ok(embed.description.includes("[Score](https://osu.ppy.sh/scores/1)"));
+    assert.ok(embed.description.includes(`${play.total_score.toLocaleString("en-US")} score`));
+    assert.match(embed.description, /Played <t:/);
+    assert.ok(embed.description.includes("Miss:"));
     assert.equal(embed.thumbnail.url, "https://assets.ppy.sh/cover.jpg");
     compact(embed);
   });
 }
+
+test("scorepost preserves failure details and date without duplicating title statistics", () => {
+  const failed = { ...play, failed: true, completion: 42 };
+  const embed = json(render.scorepostEmbed(failed, player, "Copyable title", { mode: "osu" }));
+  assert.match(embed.description, /Failed • 42\.00% completion/);
+  assert.match(embed.description, /Played <t:/);
+  assert.ok(embed.description.includes(`${play.total_score.toLocaleString("en-US")} score`));
+  assert.ok(embed.description.includes("Miss:"));
+  assert.doesNotMatch(embed.description, /\d(?:\.\d+)? pp\b|Accuracy|Combo/);
+  compact(embed);
+});
 
 function withinDiscordLimits(embeds) {
   let total = 0;

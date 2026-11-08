@@ -250,7 +250,13 @@ function scorepostEmbed(score, user, title, options = {}) {
   const embed = profileBase(user, mode, "Scorepost", options);
   const codeTitle = String(title).replace(/`/g, "ˋ").replace(/[\r\n]/g, " ").slice(0, 3500);
   const { set } = mapParts(score);
-  return thumbnail(embed.setDescription(`\`\`\`\n${codeTitle}\n\`\`\`\n${link("Score", scoreURL(score))}`), set.covers?.cover || set.covers?.list);
+  const details = [
+    `**${safe(score.rank || "—", 4)}** • ${number(score.total_score)} score • ${link("Score", scoreURL(score))}`,
+    judgments(score, mode),
+    `Played ${date(score.ended_at || score.created_at)}`,
+    ...(score.failed ? [`Failed • ${number(score.completion, 2)}% completion`] : []),
+  ];
+  return thumbnail(embed.setDescription(`\`\`\`\n${codeTitle}\n\`\`\`\n${details.join("\n")}`), set.covers?.cover || set.covers?.list);
 }
 
 module.exports = { profileEmbed, recentHeader, scoreEmbed, scoreListEmbed, beatmapEmbed, bwsEmbed, whatIfMessage, matchCostEmbed,
