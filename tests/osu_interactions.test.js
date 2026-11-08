@@ -33,6 +33,7 @@ function interaction(command = "profile", values = {}) {
     return values[name] ?? null;
   };
   return {
+    guildId: "723867861600174090",
     user: { id: "123" },
     options: {
       getSubcommand: () => { assert.equal(deferred, true); return command; },
@@ -44,6 +45,27 @@ function interaction(command = "profile", values = {}) {
     assertDeferred: () => assert.equal(deferred, true),
   };
 }
+
+test("all osu subcommands and standalone aliases silently skip other servers and DMs", async () => {
+  const commands = Object.keys(require("../utils/osu/commandOptions").DESCRIPTIONS);
+  const aliases = ["rs", "top", "mc", "avatar", "pinned", "mostplayed", "checkname", "badges", "reach", "rank", "pp", "scorepost"];
+  for (const guildId of ["other-server", null, undefined]) {
+    for (const name of commands) {
+      const i = interaction(name);
+      i.guildId = guildId;
+      await osu.execute(i);
+      assert.equal(i.deferReply.mock.callCount(), 0);
+      assert.equal(i.editReply.mock.callCount(), 0);
+    }
+    for (const alias of aliases) {
+      const i = interaction();
+      i.guildId = guildId;
+      await require(`../commands/${alias}`).execute(i);
+      assert.equal(i.deferReply.mock.callCount(), 0);
+      assert.equal(i.editReply.mock.callCount(), 0);
+    }
+  }
+});
 
 function mockServices(t, check = () => {}) {
   const guarded = (value) => async () => { check(); return structuredClone(value); };

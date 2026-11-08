@@ -48,6 +48,7 @@ function parseRankTarget(input) {
 }
 
 async function executeOsu(interaction, alias = null) {
+  if ((interaction.guildId ?? interaction.guild?.id) !== "723867861600174090") return;
   // This must precede option resolution, database lookups, and HTTP requests for every entry point.
   await interaction.deferReply();
   try {

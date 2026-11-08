@@ -245,6 +245,7 @@ test("osuPrefix event executes commands end-to-end and replies without ping", as
   let sentTyping = false;
   let replySent = null;
   const message = {
+    guild: { id: "723867861600174090" },
     content: ">rs",
     author: { id: "user456", bot: false },
     channel: {
@@ -355,6 +356,7 @@ test("new prefix commands execute through shared handlers and malformed solver n
   ]) {
     let reply;
     const message = {
+      guild: { id: "723867861600174090" },
       content, author: { id: "123", bot: false }, channel: { sendTyping: async () => {} },
       reply: async (value) => { reply = value; return { createMessageComponentCollector: () => new EventEmitter() }; },
     };
@@ -427,6 +429,7 @@ test("both prefixes execute all 18 shared displays with linked ruleset and membe
       let payload;
       const collector = new EventEmitter();
       const message = {
+        guild: { id: "723867861600174090" },
         content: `${prefix}${command}`, author: { id: "123", bot: false }, member: { displayColor: 0x13579b },
         channel: { sendTyping: async () => {} },
         reply: async (value) => { payload = value; return { createMessageComponentCollector: () => collector }; },
@@ -455,8 +458,21 @@ test("both prefixes execute all 18 shared displays with linked ruleset and membe
     }
   }
   for (const [alias, mode] of [[">rsm", "mania"], ["<rst", "taiko"], [">rsc", "fruits"], ["<rs -m osu", "osu"]]) {
-    const message = { content: alias, author: { id: "123", bot: false }, channel: { sendTyping: async () => {} }, reply: async () => ({ createMessageComponentCollector: () => new EventEmitter() }) };
+    const message = { guild: { id: "723867861600174090" }, content: alias, author: { id: "123", bot: false }, channel: { sendTyping: async () => {} }, reply: async () => ({ createMessageComponentCollector: () => new EventEmitter() }) };
     await osuPrefixEvent.execute(message);
     assert.equal(api.getUserRecentScores.mock.calls.at(-1).arguments[1], mode);
+  }
+});
+
+test("both osu prefixes silently skip other servers and DMs before typing or replying", async () => {
+  for (const guild of [{ id: "other-server" }, null, undefined]) {
+    for (const content of [">rs", "<rs", ">osu", "<top", ">link Player", "<unlink"]) {
+      const message = {
+        guild, content, author: { id: "123", bot: false },
+        channel: { sendTyping: async () => assert.fail("must not type") },
+        reply: async () => assert.fail("must not reply"),
+      };
+      await osuPrefixEvent.execute(message);
+    }
   }
 });
