@@ -44,7 +44,9 @@ function scoreInputs(score, mode) {
   }
   // Taiko has no 50 judgments; standard slider ticks never enter legacy counts.
   if (mode === 1) play.count_50 = read("count_50", "count_50");
-  for (const key of ["score", "legacy_total_score", "total_score"]) {
+  const scoreKeys = mode === 3 ? ["score", "legacy_total_score", "total_score"]
+    : ["score", "total_score", "legacy_total_score"];
+  for (const key of scoreKeys) {
     if (own(score, key)) { play.score = score[key]; break; }
   }
   return play;

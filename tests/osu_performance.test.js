@@ -91,9 +91,9 @@ test("native maps, mania hold notes/score thresholds, NC-only/PF, zero/null comb
 test("modern judgments map by ruleset; explicit legacy zeros, mania legacy score and metadata nulls survive", () => {
   const stats = { great: 10, ok: 2, meh: 1, miss: 3, perfect: 4, good: 5, large_tick_hit: 6, large_tick_miss: 7, small_tick_hit: 8, small_tick_miss: 9, slider_tail_hit: 999, slider_tick_hit: 999 };
   const score = { statistics: stats, max_combo: 12, rank: "A", total_score: 999999, legacy_total_score: 700000 };
-  assert.deepEqual(performance.scoreInputs(score, 0), { count_300: 10, count_100: 2, count_50: 1, count_miss: 3, count_geki: 0, count_katu: 0, max_combo: 12, rank: "A", score: 700000 });
+  assert.deepEqual(performance.scoreInputs(score, 0), { count_300: 10, count_100: 2, count_50: 1, count_miss: 3, count_geki: 0, count_katu: 0, max_combo: 12, rank: "A", score: 999999 });
   assert.equal(performance.scoreInputs(score, 1).count_50, 0);
-  assert.deepEqual(performance.scoreInputs(score, 2), { count_300: 10, count_100: 6, count_50: 8, count_miss: 10, count_geki: 0, count_katu: 9, max_combo: 12, rank: "A", score: 700000 });
+  assert.deepEqual(performance.scoreInputs(score, 2), { count_300: 10, count_100: 6, count_50: 8, count_miss: 10, count_geki: 0, count_katu: 9, max_combo: 12, rank: "A", score: 999999 });
   assert.deepEqual(performance.scoreInputs(score, 3), { count_300: 10, count_100: 2, count_50: 1, count_miss: 3, count_geki: 4, count_katu: 5, max_combo: 12, rank: "A", score: 700000 });
   for (let mode = 0; mode < 4; mode++) {
     const legacy = performance.scoreInputs({ ...score, count_300: 0, count_miss: 0, score: 0 }, mode);
@@ -102,6 +102,8 @@ test("modern judgments map by ruleset; explicit legacy zeros, mania legacy score
   const metadata = performance.mapInputs({ id: 2469345, accuracy: null, drain: 0, max_combo: null }, 0);
   assert.equal(metadata.od, null); assert.equal(metadata.hp, 0); assert.equal(metadata.max_combo, null);
   assert.equal(performance.mapInputs({ ...map, od: 0, hp: null }).hp, null);
+  assert.equal(performance.scoreInputs({ ...score, total_score: 97269, legacy_total_score: 0 }, 0).score, 97269);
+  assert.equal(performance.scoreInputs({ ...score, total_score: 97269, legacy_total_score: 0 }, 3).score, 0);
 });
 
 test("raw mod settings are retained and unsupported settings fail before downloading; NC and PF use original conversion", async () => {
