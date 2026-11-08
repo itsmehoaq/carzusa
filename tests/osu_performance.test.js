@@ -22,7 +22,10 @@ const deferred = () => { let resolve; const promise = new Promise(done => { reso
 const sha = value => createHash("sha256").update(value).digest("hex");
 
 function sameNumbers(actual, expected, field = "result") {
-  if (typeof expected === "number") {
+  if (field.endsWith(".error") && typeof expected === "string") {
+    // Python versions change built-in exception wording, not the source failure type.
+    assert.equal(actual.split(":")[0], expected.split(":")[0], field);
+  } else if (typeof expected === "number") {
     assert.ok(typeof actual === "number" && Math.abs(actual - expected) <= 1e-10 * Math.max(1, Math.abs(expected)), `${field}: ${actual} != ${expected}`);
   } else if (expected && typeof expected === "object") {
     assert.deepEqual(Object.keys(actual).sort(), Object.keys(expected).sort(), field);
@@ -38,15 +41,17 @@ p=Path(${JSON.stringify(fixtures)})
 t=ast.parse((p/'oracle.py').read_text())
 payload=ast.literal_eval(next(n.value for n in t.body if isinstance(n,ast.Assign) and any(isinstance(x,ast.Name) and x.id=='payload' for x in n.targets)))
 root=Path(${JSON.stringify(path.join(__dirname, "../utils/osu/calculations/performance"))})
-ported={n.name:n for f in ['formulas.py','score_utils.py'] for n in ast.parse((root/f).read_text()).body if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef))}
-original={n.name:n for k in ['calc','utils'] for n in ast.parse(payload[k]).body if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef))}
-for name,node in ported.items(): assert ast.dump(node,include_attributes=False)==ast.dump(original[name],include_attributes=False),name
+ported={n.name:(n,(root/f).read_text()) for f in ['formulas.py','score_utils.py'] for n in ast.parse((root/f).read_text()).body if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef))}
+original={n.name:(n,payload[k]) for k in ['calc','utils'] for n in ast.parse(payload[k]).body if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef))}
+for name,(node,text) in ported.items():
+ assert ast.dump(node,include_attributes=False)==ast.dump(original[name][0],include_attributes=False),name
+ assert ast.get_source_segment(text,node)==ast.get_source_segment(original[name][1],original[name][0]),name
 assert (root/'vendor/engine.py').read_text()==payload['engine']
-print(json.dumps({name:hashlib.sha256(ast.dump(n,include_attributes=False).encode()).hexdigest() for name,n in ported.items()}))
+print(json.dumps({name:hashlib.sha256(ast.get_source_segment(text,n).encode()).hexdigest() for name,(n,text) in ported.items()}))
 `;
   const hashes = JSON.parse(execFileSync("/usr/bin/python3", ["-c", script], { encoding: "utf8" }));
   const provenance = JSON.parse(read("provenance.json"));
-  assert.deepEqual(hashes, provenance.functions);
+  assert.deepEqual(hashes, provenance.functionSourceSHA256);
   assert.equal(sha(readFileSync(path.join(__dirname, "../utils/osu/calculations/performance/vendor/engine.py"))), provenance.engineSHA256);
   assert.equal(sha(Buffer.from(raw)), provenance.rawSHA256);
 });
