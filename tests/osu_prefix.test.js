@@ -362,3 +362,101 @@ test("new prefix commands execute through shared handlers and malformed solver n
     assert.match(hasEmbed ? JSON.stringify(reply.embeds) : reply.content, pattern, content);
   }
 });
+
+test("both command prefixes preserve aliases and ruleset defaults across all displays", () => {
+  const groups = [
+    ["recent", null, ["rs", "recent", "r"]], ["recent", "mania", ["rsm", "rm", "recentm"]],
+    ["recent", "taiko", ["rst", "rt", "recentt"]], ["recent", "fruits", ["rsc", "rc", "recentc"]],
+    ["top", null, ["top", "osutop", "best"]], ["top", "mania", ["topm", "bestm"]],
+    ["top", "taiko", ["topt", "bestt"]], ["top", "fruits", ["topc", "bestc"]],
+    ["profile", null, ["osu", "profile", "user", "u", "me"]],
+    ["profile", "mania", ["osum", "maniaprofile"]], ["profile", "taiko", ["osut", "taikoprofile"]],
+    ["profile", "fruits", ["osuc", "ctbprofile", "fruitsprofile"]],
+    ["map", null, ["map", "m", "beatmap"]], ["whatif", null, ["whatif", "wi"]],
+    ["bws", null, ["bws"]], ["matchcost", null, ["mc", "matchcost"]],
+    ["link", null, ["link", "set"]], ["unlink", null, ["unlink"]],
+    ["avatar", null, ["avatar", "av", "pfp"]], ["pinned", null, ["pinned", "pin", "p"]],
+    ["pinned", "taiko", ["tpin"]], ["pinned", "fruits", ["cpin"]], ["pinned", "mania", ["mpin"]],
+    ["mostplayed", null, ["mostplayed", "mp"]], ["checkname", null, ["checkname", "cn", "namecheck", "claimname"]],
+    ["badge", null, ["badge", "badges", "badgelist"]],
+    ["reach", null, ["reach"]], ["reach", "taiko", ["treach"]], ["reach", "fruits", ["creach"]], ["reach", "mania", ["mreach"]],
+    ["rank", null, ["rank"]], ["rank", "taiko", ["trank"]], ["rank", "fruits", ["crank"]], ["rank", "mania", ["mrank"]],
+    ["pp", null, ["pp"]], ["pp", "taiko", ["tpp"]], ["pp", "fruits", ["cpp"]], ["pp", "mania", ["mpp"]],
+    ["scorepost", null, ["scorepost", "post"]],
+  ];
+  for (const prefix of [">", "<"]) {
+    for (const [command, mode, aliases] of groups) {
+      for (const alias of aliases) {
+        const parsed = parsePrefixCommand(`${prefix}${alias}`);
+        assert.equal(parsed.command, command, `${prefix}${alias}`);
+        if ("mode" in parsed.options) assert.equal(parsed.options.mode, mode, `${prefix}${alias}`);
+      }
+    }
+  }
+});
+
+test("both prefixes execute all 18 shared displays with linked ruleset and member color", async (t) => {
+  t.mock.method(api, "getUser", async (target) => target === "Target"
+    ? { ...sampleUser, id: 99, username: "Target", statistics: { pp: 6000 } } : sampleUser);
+  t.mock.method(api, "getUserByUsername", async () => sampleUser);
+  t.mock.method(api, "getUserRecentScores", async () => [samplePlay, { ...samplePlay, id: 2 }]);
+  const scores = Array.from({ length: 7 }, (_, i) => ({ ...samplePlay, id: i + 1 }));
+  t.mock.method(api, "getUserTopScores", async () => scores);
+  t.mock.method(api, "getUserPinnedScores", async () => scores);
+  t.mock.method(api, "getUserMostPlayed", async () => [{ beatmap: sampleMap, count: 50 }]);
+  t.mock.method(api, "getPerformanceRankings", async () => ({ ranking: [{ pp: 6000 }] }));
+  t.mock.method(api, "getScore", async () => ({ ...samplePlay, user: sampleUser, mode: "mania" }));
+  t.mock.method(api, "getBeatmap", async () => sampleMap);
+  t.mock.method(api, "getMatch", async () => ({ match: { id: 1, name: "Match" }, users: [], events: [] }));
+  t.mock.method(db, "getLinkedUser", async () => ({ osu_id: 42, default_mode: "mania" }));
+  t.mock.method(db, "linkUser", async () => true);
+  t.mock.method(db, "unlinkUser", async () => true);
+  const cases = [
+    ["osu", "Player • osu!mania"], ["rs", "Artist - Song [Insane]"], ["top 6", "Player • Top plays • osu!mania"],
+    ["map 12", "Mapped by Mapper"], ["whatif 250", null, /Estimated total PP/],
+    ["bws", "Player • Badge-weighted seeding • osu!mania"], ["matchcost 1", "Match"],
+    ["link Player mania", null, /Linked osu! account Player \(default ruleset: mania\)/], ["unlink", null, /link has been removed/],
+    ["avatar", "Player • Avatar • osu!mania"], ["pinned 6", "Player • Pinned plays • osu!mania"],
+    ["mp", "Player • Most played • osu!mania"], ["cn Player", "Player • Username availability • osu!"],
+    ["badges", "Player • Profile badges • osu!mania"], ["reach Target", "Player • Reach • osu!mania"],
+    ["rank 1", "Player • Rank target • osu!mania"], ["pp 6000", "Player • PP target • osu!mania"],
+    ["post 1", "Player • Scorepost • osu!mania"],
+  ];
+  for (const prefix of [">", "<"]) {
+    for (const [command, heading, contentPattern] of cases) {
+      let payload;
+      const collector = new EventEmitter();
+      const message = {
+        content: `${prefix}${command}`, author: { id: "123", bot: false }, member: { displayColor: 0x13579b },
+        channel: { sendTyping: async () => {} },
+        reply: async (value) => { payload = value; return { createMessageComponentCollector: () => collector }; },
+      };
+      await osuPrefixEvent.execute(message);
+      assert.deepEqual(payload.allowedMentions, { repliedUser: false, parse: [] });
+      if (contentPattern) {
+        assert.match(payload.content, contentPattern, message.content);
+        assert.equal(payload.embeds, undefined);
+      } else {
+        const embed = payload.embeds[0].toJSON();
+        assert.ok(embed.author.name.startsWith(heading), message.content);
+        assert.equal(embed.color, 0x13579b);
+      }
+      if (["top 6", "pinned 6"].includes(command)) {
+        assert.match(payload.embeds[0].toJSON().description, /^\*\*6\.\*\*/);
+        assert.match(payload.embeds[0].toJSON().footer.text, /Page 2\/2/);
+      }
+      if (command === "rs") {
+        assert.equal(payload.content, "Recent play for **Player** • osu!mania");
+        const button = { user: message.author, customId: "osu:next", update: t.mock.fn(async () => {}) };
+        collector.emit("collect", button);
+        await new Promise((resolve) => setImmediate(resolve));
+        assert.equal(button.update.mock.calls[0].arguments[0].content, payload.content);
+      }
+    }
+  }
+  for (const [alias, mode] of [[">rsm", "mania"], ["<rst", "taiko"], [">rsc", "fruits"], ["<rs -m osu", "osu"]]) {
+    const message = { content: alias, author: { id: "123", bot: false }, channel: { sendTyping: async () => {} }, reply: async () => ({ createMessageComponentCollector: () => new EventEmitter() }) };
+    await osuPrefixEvent.execute(message);
+    assert.equal(api.getUserRecentScores.mock.calls.at(-1).arguments[1], mode);
+  }
+});

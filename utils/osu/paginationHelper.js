@@ -10,9 +10,12 @@ function controls(page, total, disabled = false) {
 async function paginate(interaction, pages, initialIndex = 0) {
   let index = Math.max(0, Math.min(pages.length - 1, initialIndex));
   if (!pages.length) return interaction.editReply({ content: "No results found.", components: [] });
-  const pageEmbeds = () => Array.isArray(pages[index]) ? pages[index] : [pages[index]];
+  const pagePayload = () => {
+    const page = pages[index];
+    return page.embeds ? { ...page } : { embeds: Array.isArray(page) ? page : [page] };
+  };
   const message = await interaction.editReply({
-    embeds: pageEmbeds(), components: pages.length > 1 ? [controls(index, pages.length)] : [],
+    ...pagePayload(), components: pages.length > 1 ? [controls(index, pages.length)] : [],
     allowedMentions: { parse: [] },
   });
   if (pages.length < 2) return message;
@@ -29,7 +32,7 @@ async function paginate(interaction, pages, initialIndex = 0) {
       // Keep timeout cleanup after any in-flight update, so it cannot re-enable expired buttons.
       updates = updates.then(async () => {
         index = Math.max(0, Math.min(pages.length - 1, index + (button.customId === "osu:next" ? 1 : -1)));
-        await button.update({ embeds: pageEmbeds(), components: [controls(index, pages.length, ended)] });
+        await button.update({ ...pagePayload(), components: [controls(index, pages.length, ended)], allowedMentions: { parse: [] } });
       }).catch(() => {});
       await updates;
     } catch {

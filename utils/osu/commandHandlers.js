@@ -52,6 +52,8 @@ async function executeOsu(interaction, alias = null) {
   await interaction.deferReply();
   try {
     const command = alias || interaction.options.getSubcommand();
+    const memberColor = interaction.member?.displayColor || interaction.member?.displayHexColor;
+    const display = { color: memberColor === "#000000" ? undefined : memberColor };
     const string = (name) => interaction.options.getString(name);
     const integer = (name) => interaction.options.getInteger(name);
     if (command === "unlink") {
@@ -69,14 +71,14 @@ async function executeOsu(interaction, alias = null) {
     }
     if (command === "map") {
       const map = await api.getBeatmap(parseResourceId(string("beatmap_id_or_url"), "beatmap"));
-      return interaction.editReply({ embeds: [embeds.beatmapEmbed(map)] });
+      return interaction.editReply({ embeds: [embeds.beatmapEmbed(map, display)] });
     }
     if (command === "matchcost") {
       const match = await api.getMatch(parseResourceId(string("match_id_or_url"), "match"));
       const result = evaluateMatchCost(match, {
         warmups: integer("warmups") ?? 0, skip: integer("skip") ?? 0, ez: interaction.options.getNumber("ez") ?? 1.78,
       });
-      const pages = Array.from({ length: Math.max(1, Math.ceil(result.players.length / 15)) }, (_, page) => embeds.matchCostEmbed(result, page));
+      const pages = Array.from({ length: Math.max(1, Math.ceil(result.players.length / 15)) }, (_, page) => embeds.matchCostEmbed(result, page, 15, display));
       return await pagination.paginate(interaction, pages);
     }
     if (command === "checkname") {
@@ -88,11 +90,11 @@ async function executeOsu(interaction, alias = null) {
         user = await api.getUserByUsername(query, "osu");
       } catch (error) {
         if (error.response?.status !== 404) throw error;
-        return interaction.editReply({ embeds: [embeds.checkNameEmbed(calculateNameAvailability(query, null))] });
+        return interaction.editReply({ embeds: [embeds.checkNameEmbed(calculateNameAvailability(query, null), null, display)] });
       }
       const fetched = await Promise.allSettled(MODES.map((mode) => api.getUser(user.id, mode)));
       const profiles = fetched.every((result) => result.status === "fulfilled") ? fetched.map((result) => result.value) : null;
-      return interaction.editReply({ embeds: [embeds.checkNameEmbed(calculateNameAvailability(query, user, profiles))] });
+      return interaction.editReply({ embeds: [embeds.checkNameEmbed(calculateNameAvailability(query, user, profiles), user, display)] });
     }
     if (command === "scorepost") {
       const resource = parseScoreResourceId(string("score_id_or_url"));
@@ -103,13 +105,13 @@ async function executeOsu(interaction, alias = null) {
         const map = await api.getBeatmap(score.beatmap.id);
         score.beatmap = { ...map, ...score.beatmap, max_combo: score.beatmap.max_combo ?? map.max_combo };
       }
-      return interaction.editReply({ embeds: [embeds.scorepostEmbed(score, user, createScorepostTitle(score, user))] });
+      return interaction.editReply({ embeds: [embeds.scorepostEmbed(score, user, createScorepostTitle(score, user), { ...display, mode })] });
     }
 
     const { target, mode } = await resolveTarget(interaction, string("username"), string("mode"));
     const user = await api.getUser(target, mode);
-    if (command === "profile") return interaction.editReply({ embeds: [embeds.profileEmbed(user, mode)] });
-    if (command === "avatar") return interaction.editReply({ embeds: [embeds.avatarEmbed(user, mode)] });
+    if (command === "profile") return interaction.editReply({ embeds: [embeds.profileEmbed(user, mode, display)] });
+    if (command === "avatar") return interaction.editReply({ embeds: [embeds.avatarEmbed(user, mode, display)] });
     if (command === "mostplayed" || command === "badge") {
       const entries = command === "mostplayed" ? await api.getUserMostPlayed(user.id) : user.badges || [];
       const pageSize = command === "mostplayed" ? 10 : 5;
@@ -117,7 +119,7 @@ async function executeOsu(interaction, alias = null) {
       const index = (integer("page") ?? 1) - 1;
       if (index < 0 || index >= totalPages) throw new Error(`Choose a page between 1 and ${totalPages}.`);
       const build = command === "mostplayed" ? embeds.mostPlayedEmbed : embeds.badgeEmbed;
-      const pages = Array.from({ length: totalPages }, (_, page) => build(user, entries, page, totalPages));
+      const pages = Array.from({ length: totalPages }, (_, page) => build(user, entries, page, totalPages, { ...display, mode }));
       return await pagination.paginate(interaction, pages, index);
     }
     if (["reach", "rank", "pp"].includes(command)) {
@@ -144,18 +146,21 @@ async function executeOsu(interaction, alias = null) {
       }
       const scores = await api.getUserTopScores(user.id, mode);
       const result = calculateReach(scores, user.statistics?.pp ?? 0, targetPP, { plays, each });
-      return interaction.editReply({ embeds: [embeds.reachEmbed(user, result, mode, targetPlayer)] });
+      return interaction.editReply({ embeds: [embeds.reachEmbed(user, result, mode, targetPlayer, {
+        ...display, kind: command === "rank" ? "Rank target" : command === "pp" ? "PP target" : "Reach",
+        targetRank: command === "rank" ? string("rank") : null,
+      })] });
     }
     if (command === "bws") {
       const override = integer("badges");
       const result = calculateBws(user.statistics?.global_rank, user.badges || [], mode, override);
-      return interaction.editReply({ embeds: [embeds.bwsEmbed(user, result, mode, override !== null)] });
+      return interaction.editReply({ embeds: [embeds.bwsEmbed(user, result, mode, override !== null, display)] });
     }
     if (command === "whatif") {
       const newPP = interaction.options.getNumber("pp", true);
       const scores = await api.getUserTopScores(user.id, mode);
       const result = calculateWhatIf(scores, newPP, user.statistics?.pp ?? 0);
-      return interaction.editReply({ embeds: [embeds.whatIfEmbed(user, result, newPP, mode)] });
+      return interaction.editReply({ content: embeds.whatIfMessage(user, result, newPP, mode), allowedMentions: { parse: [] } });
     }
     if (["recent", "top", "pinned"].includes(command)) {
       const scores = command === "recent"
@@ -173,10 +178,14 @@ async function executeOsu(interaction, alias = null) {
         const map = await beatmaps.get(id);
         return { ...score, completion: api.normalizeScore({ ...score, beatmap: { ...map, ...score.beatmap } }).completion };
       }));
-      const pages = enriched.map((score, page) => (command === "pinned" ? embeds.pinnedEmbed : embeds.scoreEmbed)(score, user, {
-        mode, kind: command === "recent" ? "Recent" : "Top", index: page, total: scores.length,
-      }));
-      return await pagination.paginate(interaction, pages, index);
+      const pages = command === "recent"
+        ? enriched.map((score, page) => ({
+          content: embeds.recentHeader(user, mode),
+          embeds: [embeds.scoreEmbed(score, user, { ...display, mode, index: page, total: scores.length })],
+        }))
+        : Array.from({ length: Math.ceil(enriched.length / 5) }, (_, page) =>
+          (command === "pinned" ? embeds.pinnedEmbed : embeds.scoreListEmbed)(enriched, user, { ...display, mode, page }));
+      return await pagination.paginate(interaction, pages, command === "recent" ? index : Math.floor(index / 5));
     }
     throw new Error("Unknown osu! subcommand.");
   } catch (error) {
